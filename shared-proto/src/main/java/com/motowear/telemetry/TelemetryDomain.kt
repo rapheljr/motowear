@@ -12,7 +12,10 @@ enum class ScreenMode {
     JOURNEY_PROGRESS,
     JOURNEY_TRACKING,
     WAYPOINT_SKIPPING,
-    JOURNEY_SUMMARY
+    JOURNEY_SUMMARY,
+    DEVICE_SETTINGS,
+    QR_ONBOARDING,
+    DEBUG_TELEMETRY
 }
 
 enum class ManeuverKind {

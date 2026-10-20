@@ -28,9 +28,12 @@ import com.motowear.wear.state.EdgeTapZone
 import com.motowear.wear.state.RideViewModel
 import com.motowear.wear.theme.MotoWearTheme
 import com.motowear.wear.ui.components.BeelineBootSplashOverlay
+import com.motowear.wear.ui.screens.DebugTelemetryScreen
+import com.motowear.wear.ui.screens.DeviceSettingsScreen
 import com.motowear.wear.ui.screens.JourneyProgressScreen
 import com.motowear.wear.ui.screens.JourneySummaryScreen
 import com.motowear.wear.ui.screens.JourneyTrackingScreen
+import com.motowear.wear.ui.screens.QrOnboardingScreen
 import com.motowear.wear.ui.screens.QuickStartScreen
 import com.motowear.wear.ui.screens.SpeedoScreen
 import com.motowear.wear.ui.screens.TurnByTurnAndRerouteScreen
@@ -139,7 +142,11 @@ fun MotoWearApp(
                 .focusRequester(focusRequester)
                 .focusable()
         ) {
-            MotoWearScreenContent(state = state)
+            MotoWearScreenContent(
+                state = state,
+                lastPacketMsAgo = viewModel.lastPacketMsAgo,
+                totalPacketsCount = viewModel.packetsReceivedCount
+            )
 
             AnimatedVisibility(
                 visible = showBootSplash,
@@ -154,7 +161,9 @@ fun MotoWearApp(
 @Composable
 fun MotoWearScreenContent(
     state: TelemetryFrameState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    lastPacketMsAgo: Long = 16L,
+    totalPacketsCount: Long = 142L
 ) {
     when (state.mode) {
         ScreenMode.TURN_BY_TURN,
@@ -165,15 +174,37 @@ fun MotoWearScreenContent(
         ScreenMode.QUICK_START -> QuickStartScreen(state = state, modifier = modifier)
         ScreenMode.WAYPOINT_SKIPPING -> WaypointSkippingScreen(state = state, modifier = modifier)
         ScreenMode.JOURNEY_SUMMARY -> JourneySummaryScreen(state = state, modifier = modifier)
+        ScreenMode.DEVICE_SETTINGS -> DeviceSettingsScreen(state = state, modifier = modifier)
+        ScreenMode.QR_ONBOARDING -> QrOnboardingScreen(state = state, modifier = modifier)
+        ScreenMode.DEBUG_TELEMETRY -> DebugTelemetryScreen(
+            state = state,
+            lastPacketMsAgo = lastPacketMsAgo,
+            totalPacketsCount = totalPacketsCount,
+            modifier = modifier
+        )
     }
 }
 
-// --- Wear OS 450x450 Previews for all 8 Ride Modes + Brand Boot Splash ---
+// --- Wear OS 450x450 Previews for all Ride Modes + Brand Boot Splash ---
 
 @Preview(device = "id:wearos_large_round", showBackground = true)
 @Composable
 private fun PreviewBeelineBootSplash() {
     BeelineBootSplashOverlay()
+}
+
+@Preview(device = "id:wearos_large_round", showBackground = true)
+@Composable
+private fun PreviewQrOnboardingScreen() {
+    val state = RideViewModel.createReferenceBaselineState().copy(mode = ScreenMode.QR_ONBOARDING)
+    MotoWearScreenContent(state = state)
+}
+
+@Preview(device = "id:wearos_large_round", showBackground = true)
+@Composable
+private fun PreviewDeviceSettingsScreen() {
+    val state = RideViewModel.createReferenceBaselineState().copy(mode = ScreenMode.DEVICE_SETTINGS)
+    MotoWearScreenContent(state = state)
 }
 
 @Preview(device = "id:wearos_large_round", showBackground = true)

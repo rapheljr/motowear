@@ -38,21 +38,25 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
     MessageClient.OnMessageReceivedListener {
 
     private val allModesOrder = listOf(
+        ScreenMode.QR_ONBOARDING,
+        ScreenMode.QUICK_START,
+        ScreenMode.DEVICE_SETTINGS,
         ScreenMode.TURN_BY_TURN,
         ScreenMode.FAST_REROUTING,
         ScreenMode.SPEEDO,
         ScreenMode.JOURNEY_PROGRESS,
         ScreenMode.JOURNEY_TRACKING,
-        ScreenMode.QUICK_START,
         ScreenMode.WAYPOINT_SKIPPING,
-        ScreenMode.JOURNEY_SUMMARY
+        ScreenMode.JOURNEY_SUMMARY,
+        ScreenMode.DEBUG_TELEMETRY
     )
 
     private val carouselOrder = listOf(
         ScreenMode.TURN_BY_TURN,
         ScreenMode.SPEEDO,
         ScreenMode.JOURNEY_PROGRESS,
-        ScreenMode.JOURNEY_TRACKING
+        ScreenMode.JOURNEY_TRACKING,
+        ScreenMode.DEBUG_TELEMETRY
     )
 
     private val _uiState = MutableStateFlow(createReferenceBaselineState())
@@ -65,8 +69,18 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
     private var simulationTimeSec = 0f
     private var lastValidCogDegrees = 330
 
+    var packetsReceivedCount: Long = 0L
+        private set
+
+    val lastPacketMsAgo: Long
+        get() = if (lastPhonePacketTimestampMs > 0) System.currentTimeMillis() - lastPhonePacketTimestampMs else -1L
+
     init {
-        messageClient.addListener(this)
+        messageClient.addListener(this).addOnSuccessListener {
+            Log.d("RideViewModel", "MessageClient listener registered successfully")
+        }.addOnFailureListener {
+            Log.e("RideViewModel", "Failed to register MessageClient listener", it)
+        }
         observeIncomingPhoneTelemetry()
         start60FpsRenderAndBurnInLoop()
     }
@@ -94,6 +108,7 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
 
     private fun applyPhoneTelemetryFrame(incoming: TelemetryFrameState) {
         lastPhonePacketTimestampMs = System.currentTimeMillis()
+        packetsReceivedCount++
 
         if (lastRemotePhoneMode != null && incoming.mode != lastRemotePhoneMode) {
             userSwipedModeOverride = null
@@ -251,7 +266,10 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                     val nextWp = (state.currentWaypointIdx + step).coerceIn(1, state.totalWaypoints)
                     state.copy(currentWaypointIdx = nextWp)
                 }
-                ScreenMode.JOURNEY_SUMMARY -> {
+                ScreenMode.JOURNEY_SUMMARY,
+                ScreenMode.QR_ONBOARDING,
+                ScreenMode.DEVICE_SETTINGS,
+                ScreenMode.DEBUG_TELEMETRY -> {
                     userSwipedModeOverride = ScreenMode.QUICK_START
                     state.copy(mode = ScreenMode.QUICK_START)
                 }
@@ -285,7 +303,10 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                     userSwipedModeOverride = ScreenMode.TURN_BY_TURN
                     state.copy(mode = ScreenMode.TURN_BY_TURN)
                 }
-                ScreenMode.JOURNEY_SUMMARY -> state
+                ScreenMode.JOURNEY_SUMMARY,
+                ScreenMode.QR_ONBOARDING,
+                ScreenMode.DEVICE_SETTINGS,
+                ScreenMode.DEBUG_TELEMETRY -> state
             }
         }
     }
@@ -349,7 +370,10 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                     )
                 }
             }
-            ScreenMode.JOURNEY_SUMMARY -> {
+            ScreenMode.JOURNEY_SUMMARY,
+            ScreenMode.QR_ONBOARDING,
+            ScreenMode.DEVICE_SETTINGS,
+            ScreenMode.DEBUG_TELEMETRY -> {
                 userSwipedModeOverride = ScreenMode.QUICK_START
                 _uiState.update {
                     it.copy(

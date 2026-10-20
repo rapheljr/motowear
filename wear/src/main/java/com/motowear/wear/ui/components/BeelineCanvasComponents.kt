@@ -289,6 +289,33 @@ object BeelineCanvasPrimitives {
                     style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
             }
+            EdgeGlyphType.RETURN_BACK -> {
+                // Curved return/back arrow glyph (matches Image 2 left D-button)
+                val backArc = Path().apply {
+                    moveTo(gx + 3.dp.toPx(), cy + 4.dp.toPx())
+                    lineTo(gx + 3.dp.toPx(), cy - 1.dp.toPx())
+                    quadraticTo(
+                        gx + 3.dp.toPx(), cy - 5.dp.toPx(),
+                        gx - 1.dp.toPx(), cy - 5.dp.toPx()
+                    )
+                    lineTo(gx - 4.dp.toPx(), cy - 5.dp.toPx())
+                }
+                drawPath(
+                    path = backArc,
+                    color = borderColor,
+                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+                val arrowTip = Path().apply {
+                    moveTo(gx - 1.dp.toPx(), cy - 8.dp.toPx())
+                    lineTo(gx - 5.dp.toPx(), cy - 5.dp.toPx())
+                    lineTo(gx - 1.dp.toPx(), cy - 2.dp.toPx())
+                }
+                drawPath(
+                    path = arrowTip,
+                    color = borderColor,
+                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+            }
         }
     }
 
@@ -363,5 +390,6 @@ object BeelineCanvasPrimitives {
 enum class EdgeGlyphType {
     CHEVRON_LEFT,
     CHEVRON_RIGHT,
-    DETOUR_REJOIN
+    DETOUR_REJOIN,
+    RETURN_BACK
 }

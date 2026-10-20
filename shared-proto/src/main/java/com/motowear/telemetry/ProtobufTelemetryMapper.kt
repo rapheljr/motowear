@@ -117,6 +117,7 @@ object ProtobufTelemetryMapper {
         ScreenMode.JOURNEY_TRACKING -> ActiveScreenMode.JOURNEY_TRACKING
         ScreenMode.WAYPOINT_SKIPPING -> ActiveScreenMode.WAYPOINT_SKIPPING
         ScreenMode.JOURNEY_SUMMARY -> ActiveScreenMode.JOURNEY_SUMMARY
+        ScreenMode.DEVICE_SETTINGS, ScreenMode.QR_ONBOARDING, ScreenMode.DEBUG_TELEMETRY -> ActiveScreenMode.QUICK_START
     }
 
     private fun ActiveScreenMode.toDomainMode(): ScreenMode = when (this) {
