@@ -1,5 +1,6 @@
 package com.motowear.phone.service
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,10 +8,12 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
-import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.motowear.phone.MainActivity
 import com.motowear.phone.R
 
@@ -37,14 +40,26 @@ class RideForegroundService : Service() {
             ?: "Streaming 10Hz telemetry to MotoWear OS watch"
         val notification = buildNotification(statusText)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        val hasLocationPermission = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        try {
+            if (hasLocationPermission) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start foreground service", e)
+            stopSelf()
+            return START_NOT_STICKY
         }
 
         return START_STICKY
@@ -53,7 +68,7 @@ class RideForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createNotificationChannel() {
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
             CHANNEL_ID,
             "MotoWear Active Ride Telemetry",
@@ -97,23 +112,43 @@ class RideForegroundService : Service() {
     }
 
     companion object {
+        private const val TAG = "RideForegroundService"
         const val CHANNEL_ID = "motowear_ride_telemetry_channel"
         const val NOTIFICATION_ID = 1002
         const val ACTION_STOP_SERVICE = "com.motowear.phone.action.STOP_FOREGROUND_RIDE"
         const val EXTRA_STATUS_TEXT = "com.motowear.phone.extra.STATUS_TEXT"
 
         fun start(context: Context, statusText: String = "Streaming 10Hz telemetry to MotoWear OS") {
+            val hasLocationPermission = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasLocationPermission) {
+                Log.w(TAG, "Skipping RideForegroundService start: Location permission not granted.")
+                return
+            }
+
             val intent = Intent(context, RideForegroundService::class.java).apply {
                 putExtra(EXTRA_STATUS_TEXT, statusText)
             }
-            context.startForegroundService(intent)
+            try {
+                ContextCompat.startForegroundService(context, intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start RideForegroundService", e)
+            }
         }
 
         fun stop(context: Context) {
             val intent = Intent(context, RideForegroundService::class.java).apply {
                 action = ACTION_STOP_SERVICE
             }
-            context.startService(intent)
+            try {
+                context.startService(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to stop RideForegroundService", e)
+            }
         }
     }
 }

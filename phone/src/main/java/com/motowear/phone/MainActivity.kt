@@ -2,6 +2,7 @@ package com.motowear.phone
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -39,11 +40,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.motowear.phone.service.RideHostEngine
 import com.motowear.phone.ui.BeelineBrandHeader
 import com.motowear.phone.ui.theme.BeelinePhoneTheme
@@ -67,6 +72,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BeelinePhoneTheme {
+                var pendingStartStreaming by remember { mutableStateOf(false) }
+
                 val gpxPicker = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.GetContent()
                 ) { uri: Uri? ->
@@ -84,6 +91,32 @@ class MainActivity : ComponentActivity() {
                         grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
                     if (hasLocation) {
                         hostEngine.setUseLiveHardwareGps(true)
+                    }
+                    if (pendingStartStreaming) {
+                        pendingStartStreaming = false
+                        hostEngine.startStreaming()
+                    }
+                }
+
+                fun requestPermissionsAndStartStream() {
+                    val hasLocation = ContextCompat.checkSelfPermission(
+                        this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+                        this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+
+                    if (hasLocation) {
+                        hostEngine.startStreaming()
+                    } else {
+                        pendingStartStreaming = true
+                        val perms = buildList {
+                            add(Manifest.permission.ACCESS_FINE_LOCATION)
+                            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                add(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        }.toTypedArray()
+                        permissionLauncher.launch(perms)
                     }
                 }
 
@@ -106,6 +139,9 @@ class MainActivity : ComponentActivity() {
                         } else {
                             hostEngine.setUseLiveHardwareGps(false)
                         }
+                    },
+                    onRequestStartStreaming = {
+                        requestPermissionsAndStartStream()
                     }
                 )
             }
@@ -124,7 +160,8 @@ private fun CompanionHostDashboard(
     engine: RideHostEngine,
     onPickGpxFile: () -> Unit,
     onOpenNotificationListenerSettings: () -> Unit,
-    onToggleLiveGps: (Boolean) -> Unit
+    onToggleLiveGps: (Boolean) -> Unit,
+    onRequestStartStreaming: () -> Unit
 ) {
     val route by engine.activeRoute.collectAsState()
     val state by engine.telemetryState.collectAsState()
@@ -263,7 +300,7 @@ private fun CompanionHostDashboard(
                         }
                         Button(
                             onClick = {
-                                if (isStreaming) engine.stopStreaming() else engine.startStreaming()
+                                if (isStreaming) engine.stopStreaming() else onRequestStartStreaming()
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (isStreaming) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
