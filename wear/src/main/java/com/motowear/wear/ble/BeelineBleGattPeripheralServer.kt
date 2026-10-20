@@ -112,6 +112,10 @@ class BeelineBleGattPeripheralServer(context: Context) {
                 server.addService(service)
             }
 
+            runCatching {
+                adapter.name = "Beeline Moto II"
+            }
+
             val advertiser = adapter.bluetoothLeAdvertiser ?: return@runCatching
             val settings = AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
@@ -120,12 +124,16 @@ class BeelineBleGattPeripheralServer(context: Context) {
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
                 .build()
 
-            val data = AdvertiseData.Builder()
-                .setIncludeDeviceName(false)
+            val advertiseData = AdvertiseData.Builder()
+                .setIncludeDeviceName(true)
                 .addServiceUuid(ParcelUuid(BEELINE_MOTO_SERVICE_UUID))
                 .build()
 
-            advertiser.startAdvertising(settings, data, advertiseCallback)
+            val scanResponseData = AdvertiseData.Builder()
+                .setIncludeDeviceName(true)
+                .build()
+
+            advertiser.startAdvertising(settings, advertiseData, scanResponseData, advertiseCallback)
         }
     }
 

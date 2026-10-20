@@ -1,9 +1,13 @@
 package com.motowear.wear
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -54,7 +58,31 @@ class WearMainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         blePeripheralServer = BeelineBleGattPeripheralServer(this)
-        blePeripheralServer.startPeripheralServer()
+
+        val bluetoothPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) {
+            blePeripheralServer.startPeripheralServer()
+        }
+
+        val blePermissionsNeeded = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(Manifest.permission.BLUETOOTH_ADVERTISE)
+                add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+        }
+
+        val hasBlePermissions = blePermissionsNeeded.all {
+            checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED
+        }
+
+        if (hasBlePermissions) {
+            blePeripheralServer.startPeripheralServer()
+        } else if (blePermissionsNeeded.isNotEmpty()) {
+            bluetoothPermissionLauncher.launch(blePermissionsNeeded.toTypedArray())
+        } else {
+            blePeripheralServer.startPeripheralServer()
+        }
 
         ambientObserver = AmbientLifecycleObserver(this, ambientCallback)
         lifecycle.addObserver(ambientObserver)

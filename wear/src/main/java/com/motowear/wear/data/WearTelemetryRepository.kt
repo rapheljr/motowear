@@ -1,10 +1,12 @@
 package com.motowear.wear.data
 
 import android.content.Context
+import android.util.Log
 import com.google.android.gms.wearable.Wearable
 import com.motowear.telemetry.ProtobufTelemetryMapper
 import com.motowear.telemetry.TelemetryFrameState
 import com.motowear.telemetry.TelemetryPaths
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -17,13 +19,20 @@ import kotlinx.coroutines.tasks.await
  */
 object WearTelemetryRepository {
 
-    private val _incomingFrames = MutableSharedFlow<TelemetryFrameState>(extraBufferCapacity = 16)
+    private const val TAG = "WearTelemetryRepo"
+
+    private val _incomingFrames = MutableSharedFlow<TelemetryFrameState>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
     val incomingFrames: SharedFlow<TelemetryFrameState> = _incomingFrames.asSharedFlow()
 
     fun onProtobufPacketReceived(bytes: ByteArray) {
         runCatching {
             val decoded = ProtobufTelemetryMapper.fromProtoByteArray(bytes)
             _incomingFrames.tryEmit(decoded)
+        }.onFailure {
+            Log.e(TAG, "Failed to decode Protobuf telemetry packet", it)
         }
     }
 

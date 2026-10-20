@@ -155,6 +155,12 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
 
     fun setOverrideScreenMode(mode: ScreenMode) {
         _telemetryState.update { it.copy(mode = mode) }
+        scope.launch {
+            runCatching {
+                val metrics = broadcaster.broadcastTelemetryState(_telemetryState.value)
+                _broadcastMetrics.value = metrics
+            }
+        }
     }
 
     fun setSimulatedSpeedKmh(speedKmh: Int) {
@@ -165,6 +171,14 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
         if (_isStreaming.value) return
         _isStreaming.value = true
         rideStartEpochMs = System.currentTimeMillis()
+
+        _telemetryState.update { prev ->
+            if (prev.mode == ScreenMode.QUICK_START) {
+                prev.copy(mode = ScreenMode.TURN_BY_TURN)
+            } else {
+                prev
+            }
+        }
 
         runCatching {
             val sourceLabel = externalNavSnapshot.value?.sourceAppName ?: _activeRoute.value.name
@@ -194,6 +208,9 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
         _isStreaming.value = false
         streamJob?.cancel()
         streamJob = null
+        _telemetryState.update { prev ->
+            prev.copy(mode = ScreenMode.QUICK_START)
+        }
         runCatching {
             RideForegroundService.stop(appContext)
         }

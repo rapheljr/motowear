@@ -1,6 +1,7 @@
 package com.motowear.wear.state
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.wearable.MessageClient
@@ -60,6 +61,7 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
     private val messageClient = Wearable.getMessageClient(application)
     private var lastPhonePacketTimestampMs: Long = 0L
     private var userSwipedModeOverride: ScreenMode? = null
+    private var lastRemotePhoneMode: ScreenMode? = null
     private var simulationTimeSec = 0f
     private var lastValidCogDegrees = 330
 
@@ -73,6 +75,8 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
         if (messageEvent.path == TelemetryPaths.TELEMETRY_FRAME_PATH) {
             val decoded = runCatching {
                 ProtobufTelemetryMapper.fromProtoByteArray(messageEvent.data, _uiState.value)
+            }.onFailure {
+                Log.e("RideViewModel", "Failed to decode incoming telemetry frame", it)
             }.getOrNull()
             if (decoded != null) {
                 applyPhoneTelemetryFrame(decoded)
@@ -90,12 +94,21 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
 
     private fun applyPhoneTelemetryFrame(incoming: TelemetryFrameState) {
         lastPhonePacketTimestampMs = System.currentTimeMillis()
+
+        if (lastRemotePhoneMode != null && incoming.mode != lastRemotePhoneMode) {
+            userSwipedModeOverride = null
+        }
+        lastRemotePhoneMode = incoming.mode
+
         _uiState.update { current ->
             val cog = resolveCogHeading(incoming.currentSpeedKmh, incoming.headingDegrees)
             val dynamicAmbient = if (incoming.distanceToNextMeters <= 400 || incoming.isOffRoute) {
                 false
             } else {
                 current.isAmbientMode
+            }
+            if (incoming.mode != ScreenMode.QUICK_START && userSwipedModeOverride == ScreenMode.QUICK_START) {
+                userSwipedModeOverride = null
             }
             val resolvedMode = when {
                 incoming.isOffRoute -> ScreenMode.FAST_REROUTING
