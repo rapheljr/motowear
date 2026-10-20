@@ -2,6 +2,8 @@ name: Release Build
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
@@ -16,9 +18,22 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate Semantic Version
+        id: semver
+        uses: PaulHatch/semantic-version@v5.4.0
+        with:
+          branch: main
+          tag_prefix: "v"
+          major_pattern: "(MAJOR)|BREAKING CHANGE:|feat!:"
+          minor_pattern: "feat"
+          patch_pattern: "fix"
+          format: "${major}.${minor}.${patch}"
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -34,20 +49,21 @@ jobs:
       - name: Grant Execute Permission for Gradle Wrapper
         run: chmod +x gradlew
 
-      - name: Build Debug APKs
-        run: ./gradlew assembleDebug --no-daemon
+      - name: Build APKs with Versioning
+        run: ./gradlew assembleDebug -PversionName=${{ steps.semver.outputs.version }} -PversionCode=${{ steps.semver.outputs.version_code }} --no-daemon
 
       - name: Package Release Assets
         run: |
           mkdir -p release-assets
-          cp phone/build/outputs/apk/debug/phone-debug.apk release-assets/MotoWear-Phone-Companion.apk
-          cp wear/build/outputs/apk/debug/wear-debug.apk release-assets/MotoWear-WearOS-Watch.apk
+          cp phone/build/outputs/apk/debug/phone-debug.apk release-assets/MotoWear-Phone-Companion-${{ steps.semver.outputs.version_tag }}.apk
+          cp wear/build/outputs/apk/debug/wear-debug.apk release-assets/MotoWear-WearOS-Watch-${{ steps.semver.outputs.version_tag }}.apk
 
-      - name: Create GitHub Release
+      - name: Tag and Create GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
+          tag_name: ${{ steps.semver.outputs.version_tag }}
+          name: Release ${{ steps.semver.outputs.version_tag }}
           files: |
-            release-assets/MotoWear-Phone-Companion.apk
-            release-assets/MotoWear-WearOS-Watch.apk
+            release-assets/MotoWear-Phone-Companion-${{ steps.semver.outputs.version_tag }}.apk
+            release-assets/MotoWear-WearOS-Watch-${{ steps.semver.outputs.version_tag }}.apk
           generate_release_notes: true
