@@ -1,38 +1,43 @@
 package com.motowear.wear.data
 
 import android.content.Context
-import android.util.Log
 import com.google.android.gms.wearable.Wearable
 import com.motowear.telemetry.ProtobufTelemetryMapper
 import com.motowear.telemetry.TelemetryFrameState
 import com.motowear.telemetry.TelemetryPaths
-import kotlinx.coroutines.channels.BufferOverflow
+import com.motowear.wear.ble.BeelineBleGattPeripheralServer
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.tasks.await
+import java.lang.ref.WeakReference
 
 /**
  * Singleton Dual-Ingest bridge holding live 10Hz telemetry frames received either from:
  * 1. The MotoWear Android Companion Host via `MessageClient` (`/motowear/telemetry/frame_v1`), OR
- * 2. Direct BLE GATT Peripheral writes on `BeelineBleGattPeripheralServer` (`0000bee1-...`).
+ * 2. Official `co.beeline` / BLE GATT Peripheral writes on `BeelineBleGattPeripheralServer` (`C5D70002-...` / `0000bee1-...`).
  */
 object WearTelemetryRepository {
 
-    private const val TAG = "WearTelemetryRepo"
-
-    private val _incomingFrames = MutableSharedFlow<TelemetryFrameState>(
-        extraBufferCapacity = 64,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
+    private val _incomingFrames = MutableSharedFlow<TelemetryFrameState>(extraBufferCapacity = 16)
     val incomingFrames: SharedFlow<TelemetryFrameState> = _incomingFrames.asSharedFlow()
+
+    private var activeBleServerRef: WeakReference<BeelineBleGattPeripheralServer>? = null
+
+    fun registerBlePeripheralServer(server: BeelineBleGattPeripheralServer) {
+        activeBleServerRef = WeakReference(server)
+    }
+
+    fun unregisterBlePeripheralServer(server: BeelineBleGattPeripheralServer) {
+        if (activeBleServerRef?.get() === server) {
+            activeBleServerRef = null
+        }
+    }
 
     fun onProtobufPacketReceived(bytes: ByteArray) {
         runCatching {
             val decoded = ProtobufTelemetryMapper.fromProtoByteArray(bytes)
             _incomingFrames.tryEmit(decoded)
-        }.onFailure {
-            Log.e(TAG, "Failed to decode Protobuf telemetry packet", it)
         }
     }
 
@@ -41,6 +46,15 @@ object WearTelemetryRepository {
     }
 
     suspend fun sendCommandToPhoneHost(context: Context, command: String) {
+        // Also emit BLE GATT ButtonPress notification on C5D70003 for connected co.beeline centrals
+        val buttonCode = when {
+            command == "REPLAY_VOICE_PROMPT" -> 1
+            command == "FORCE_RECALCULATE" -> 2
+            command.startsWith("SKIP_WAYPOINT:") -> 3
+            else -> 1
+        }
+        activeBleServerRef?.get()?.notifyUserActionButtonPress(buttonCode)
+
         val appContext = context.applicationContext
         val nodeClient = Wearable.getNodeClient(appContext)
         val messageClient = Wearable.getMessageClient(appContext)

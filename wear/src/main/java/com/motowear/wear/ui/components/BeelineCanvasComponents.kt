@@ -22,7 +22,7 @@ import com.motowear.telemetry.ManeuverKind
 import com.motowear.wear.theme.BeelineColors
 
 /**
- * Reusable pixel-accurate Beeline Moto 2 Canvas primitives shared across the 8 Ride Modes.
+ * Reusable pixel-accurate Beeline Moto 2 Canvas primitives shared across all Ride Modes.
  */
 object BeelineCanvasPrimitives {
 
@@ -45,7 +45,6 @@ object BeelineCanvasPrimitives {
         }
 
         if (!isAmbient) {
-            // 5dp black outline stroke to separate chevron cleanly from underlying white route
             drawPath(
                 path = path,
                 color = BeelineColors.BeelineBlack,
@@ -71,7 +70,6 @@ object BeelineCanvasPrimitives {
     /**
      * Draws the circular Speed Limit Sign (`SpeedLimitBadge`):
      * White fill, BeelineRed border, bold black numerals, and optional concentric outer white approach arc.
-     * Converts to hollow vector outline in Ambient Mode (Section 6.2).
      */
     fun DrawScope.drawSpeedLimitBadge(
         center: Offset,
@@ -141,8 +139,7 @@ object BeelineCanvasPrimitives {
     }
 
     /**
-     * Draws the 6 o'clock BeelineAmber (#FFCC00) D-shaped confirmation dome with a 2.8dp black checkmark
-     * (used on Waypoint Skipping and Journey Summary screens).
+     * Draws the 6 o'clock BeelineAmber (#FFCC00) D-shaped confirmation dome with a 2.8dp black checkmark.
      */
     fun DrawScope.drawBottomConfirmDome(
         canvasWidth: Float,
@@ -176,7 +173,6 @@ object BeelineCanvasPrimitives {
             )
         }
 
-        // Checkmark glyph
         val cx = canvasWidth / 2f
         val cy = top + domeHeight * 0.52f
         val checkPath = Path().apply {
@@ -196,7 +192,7 @@ object BeelineCanvasPrimitives {
     }
 
     /**
-     * Draws a left (9 o'clock) or right (3 o'clock) D-shaped edge button prompt (`<`, `>`, or reroute icon).
+     * Draws a left (9 o'clock) or right (3 o'clock) D-shaped edge button prompt (`<`, `>`, back, or reroute icon).
      */
     fun DrawScope.drawSideEdgeDButton(
         isRightEdge: Boolean,
@@ -267,7 +263,6 @@ object BeelineCanvasPrimitives {
                 )
             }
             EdgeGlyphType.DETOUR_REJOIN -> {
-                // Circular detour/rejoin arrow glyph at 3 o'clock on FAST_REROUTING
                 val arcR = 5.5.dp.toPx()
                 drawArc(
                     color = borderColor,
@@ -290,7 +285,6 @@ object BeelineCanvasPrimitives {
                 )
             }
             EdgeGlyphType.RETURN_BACK -> {
-                // Curved return/back arrow glyph (matches Image 2 left D-button)
                 val backArc = Path().apply {
                     moveTo(gx + 3.dp.toPx(), cy + 4.dp.toPx())
                     lineTo(gx + 3.dp.toPx(), cy - 1.dp.toPx())
@@ -320,21 +314,154 @@ object BeelineCanvasPrimitives {
     }
 
     /**
-     * Draws the upcoming maneuver vector arrow inside the Left Zone of the Turn-by-Turn HUD.
+     * Draws all 10 `ManeuverKind` vector icons inside the Left Zone of the Turn-by-Turn HUD:
+     * `STRAIGHT`, `TURN_LEFT`, `TURN_RIGHT`, `SLIGHT_LEFT`, `SLIGHT_RIGHT`,
+     * `SHARP_LEFT`, `SHARP_RIGHT`, `UTURN`, `ROUNDABOUT_LEFT`, and `ROUNDABOUT_RIGHT` (with exit number).
      */
     fun DrawScope.drawManeuverArrow(
         center: Offset,
-        maneuver: ManeuverKind
+        maneuver: ManeuverKind,
+        roundaboutExit: Int = 0,
+        textMeasurer: TextMeasurer? = null
     ) {
         val w = 34.dp.toPx()
         val h = 34.dp.toPx()
         val strokeWidth = 5.5.dp.toPx()
 
+        if (maneuver == ManeuverKind.ROUNDABOUT_LEFT || maneuver == ManeuverKind.ROUNDABOUT_RIGHT) {
+            val ringR = 11.dp.toPx()
+            drawCircle(
+                color = BeelineColors.BeelineWhite,
+                radius = ringR,
+                center = center,
+                style = Stroke(width = 4.dp.toPx())
+            )
+            // Entry stem at bottom
+            drawLine(
+                color = BeelineColors.BeelineWhite,
+                start = Offset(center.x, center.y + ringR),
+                end = Offset(center.x, center.y + h * 0.48f),
+                strokeWidth = 4.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+            // Exit spur on left or right
+            val exitDir = if (maneuver == ManeuverKind.ROUNDABOUT_LEFT) -1f else 1f
+            drawLine(
+                color = BeelineColors.BeelineWhite,
+                start = Offset(center.x + exitDir * ringR * 0.7f, center.y - ringR * 0.7f),
+                end = Offset(center.x + exitDir * w * 0.45f, center.y - h * 0.45f),
+                strokeWidth = 4.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+            if (roundaboutExit > 0 && textMeasurer != null) {
+                val exitLayout = textMeasurer.measure(
+                    text = roundaboutExit.toString(),
+                    style = TextStyle(
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        fontFeatureSettings = "tnum",
+                        color = BeelineColors.BeelineWhite
+                    )
+                )
+                drawText(
+                    textLayoutResult = exitLayout,
+                    topLeft = Offset(
+                        center.x - exitLayout.size.width / 2f,
+                        center.y - exitLayout.size.height / 2f
+                    )
+                )
+            }
+            return
+        }
+
         val shaftPath = Path()
         val headPath = Path()
 
         when (maneuver) {
-            ManeuverKind.TURN_LEFT, ManeuverKind.SLIGHT_LEFT, ManeuverKind.SHARP_LEFT -> {
+            ManeuverKind.STRAIGHT -> {
+                shaftPath.apply {
+                    moveTo(center.x, center.y + h * 0.42f)
+                    lineTo(center.x, center.y - h * 0.25f)
+                }
+                headPath.apply {
+                    moveTo(center.x - w * 0.24f, center.y - h * 0.15f)
+                    lineTo(center.x, center.y - h * 0.46f)
+                    lineTo(center.x + w * 0.24f, center.y - h * 0.15f)
+                    close()
+                }
+            }
+            ManeuverKind.SLIGHT_LEFT -> {
+                shaftPath.apply {
+                    moveTo(center.x + w * 0.14f, center.y + h * 0.42f)
+                    lineTo(center.x + w * 0.14f, center.y + h * 0.04f)
+                    lineTo(center.x - w * 0.22f, center.y - h * 0.30f)
+                }
+                headPath.apply {
+                    moveTo(center.x - w * 0.38f, center.y - h * 0.12f)
+                    lineTo(center.x - w * 0.38f, center.y - h * 0.44f)
+                    lineTo(center.x - w * 0.06f, center.y - h * 0.44f)
+                    close()
+                }
+            }
+            ManeuverKind.SLIGHT_RIGHT -> {
+                shaftPath.apply {
+                    moveTo(center.x - w * 0.14f, center.y + h * 0.42f)
+                    lineTo(center.x - w * 0.14f, center.y + h * 0.04f)
+                    lineTo(center.x + w * 0.22f, center.y - h * 0.30f)
+                }
+                headPath.apply {
+                    moveTo(center.x + w * 0.38f, center.y - h * 0.12f)
+                    lineTo(center.x + w * 0.38f, center.y - h * 0.44f)
+                    lineTo(center.x + w * 0.06f, center.y - h * 0.44f)
+                    close()
+                }
+            }
+            ManeuverKind.SHARP_LEFT -> {
+                shaftPath.apply {
+                    moveTo(center.x + w * 0.22f, center.y + h * 0.42f)
+                    lineTo(center.x + w * 0.22f, center.y - h * 0.28f)
+                    lineTo(center.x - w * 0.28f, center.y + h * 0.16f)
+                }
+                headPath.apply {
+                    moveTo(center.x - w * 0.42f, center.y - h * 0.02f)
+                    lineTo(center.x - w * 0.42f, center.y + h * 0.30f)
+                    lineTo(center.x - w * 0.10f, center.y + h * 0.30f)
+                    close()
+                }
+            }
+            ManeuverKind.SHARP_RIGHT -> {
+                shaftPath.apply {
+                    moveTo(center.x - w * 0.22f, center.y + h * 0.42f)
+                    lineTo(center.x - w * 0.22f, center.y - h * 0.28f)
+                    lineTo(center.x + w * 0.28f, center.y + h * 0.16f)
+                }
+                headPath.apply {
+                    moveTo(center.x + w * 0.42f, center.y - h * 0.02f)
+                    lineTo(center.x + w * 0.42f, center.y + h * 0.30f)
+                    lineTo(center.x + w * 0.10f, center.y + h * 0.30f)
+                    close()
+                }
+            }
+            ManeuverKind.UTURN -> {
+                shaftPath.apply {
+                    moveTo(center.x + w * 0.24f, center.y + h * 0.42f)
+                    lineTo(center.x + w * 0.24f, center.y - h * 0.10f)
+                    cubicTo(
+                        center.x + w * 0.24f, center.y - h * 0.42f,
+                        center.x - w * 0.24f, center.y - h * 0.42f,
+                        center.x - w * 0.24f, center.y - h * 0.10f
+                    )
+                    lineTo(center.x - w * 0.24f, center.y + h * 0.18f)
+                }
+                headPath.apply {
+                    moveTo(center.x - w * 0.44f, center.y + h * 0.12f)
+                    lineTo(center.x - w * 0.24f, center.y + h * 0.40f)
+                    lineTo(center.x - w * 0.04f, center.y + h * 0.12f)
+                    close()
+                }
+            }
+            ManeuverKind.TURN_LEFT -> {
                 shaftPath.apply {
                     moveTo(center.x + w * 0.22f, center.y + h * 0.42f)
                     lineTo(center.x + w * 0.22f, center.y - h * 0.05f)
@@ -353,7 +480,7 @@ object BeelineCanvasPrimitives {
                     close()
                 }
             }
-            else -> {
+            ManeuverKind.TURN_RIGHT, ManeuverKind.ROUNDABOUT_LEFT, ManeuverKind.ROUNDABOUT_RIGHT -> {
                 // Default 90-degree right turn arrow with rounded corner and triangular arrowhead (matches blk_nav.webp)
                 shaftPath.apply {
                     moveTo(center.x - w * 0.22f, center.y + h * 0.42f)

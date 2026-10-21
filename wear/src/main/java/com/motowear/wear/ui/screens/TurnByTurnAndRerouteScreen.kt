@@ -184,7 +184,9 @@ fun TurnByTurnAndRerouteScreen(
                 if (!isRerouting) {
                     drawManeuverArrow(
                         center = Offset(w * 0.25f, h * 0.78f),
-                        maneuver = state.nextManeuver
+                        maneuver = state.nextManeuver,
+                        roundaboutExit = state.roundExitNumber,
+                        textMeasurer = textMeasurer
                     )
                 }
 
@@ -242,7 +244,6 @@ fun TurnByTurnAndRerouteScreen(
                 val arcTopLeft = Offset(inset, inset)
                 val totalSweep = 128f - 52f
 
-                // 2dp grey background track
                 drawArc(
                     color = BeelineColors.BeelineDarkGrey,
                     startAngle = 52f,
@@ -253,7 +254,6 @@ fun TurnByTurnAndRerouteScreen(
                     style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
                 )
 
-                // 4dp white foreground fill bar representing progress along the current maneuver leg
                 val progressSweep = totalSweep * state.legProgressRatio.coerceIn(0f, 1f)
                 drawArc(
                     color = BeelineColors.BeelineWhite,
