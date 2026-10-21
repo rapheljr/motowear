@@ -480,7 +480,7 @@ object BeelineCanvasPrimitives {
                     close()
                 }
             }
-            ManeuverKind.TURN_RIGHT, ManeuverKind.ROUNDABOUT_LEFT, ManeuverKind.ROUNDABOUT_RIGHT -> {
+            ManeuverKind.TURN_RIGHT -> {
                 // Default 90-degree right turn arrow with rounded corner and triangular arrowhead (matches blk_nav.webp)
                 shaftPath.apply {
                     moveTo(center.x - w * 0.22f, center.y + h * 0.42f)
@@ -500,6 +500,7 @@ object BeelineCanvasPrimitives {
                     close()
                 }
             }
+            else -> {}
         }
 
         drawPath(

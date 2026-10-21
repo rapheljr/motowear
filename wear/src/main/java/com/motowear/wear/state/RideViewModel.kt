@@ -72,9 +72,6 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
     var packetsReceivedCount: Long = 0L
         private set
 
-    val lastPacketMsAgo: Long
-        get() = if (lastPhonePacketTimestampMs > 0) System.currentTimeMillis() - lastPhonePacketTimestampMs else -1L
-
     init {
         messageClient.addListener(this).addOnSuccessListener {
             Log.d("RideViewModel", "MessageClient listener registered successfully")

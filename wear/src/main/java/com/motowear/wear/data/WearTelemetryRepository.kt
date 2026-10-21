@@ -12,6 +12,12 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.tasks.await
 import java.lang.ref.WeakReference
 
+object BeelineButtonCode {
+    const val REPLAY_VOICE: Int = 1
+    const val RECALCULATE: Int = 2
+    const val SKIP_WAYPOINT: Int = 3
+}
+
 /**
  * Singleton Dual-Ingest bridge holding live 10Hz telemetry frames received either from:
  * 1. The MotoWear Android Companion Host via `MessageClient` (`/motowear/telemetry/frame_v1`), OR
@@ -48,10 +54,10 @@ object WearTelemetryRepository {
     suspend fun sendCommandToPhoneHost(context: Context, command: String) {
         // Also emit BLE GATT ButtonPress notification on C5D70003 for connected co.beeline centrals
         val buttonCode = when {
-            command == "REPLAY_VOICE_PROMPT" -> 1
-            command == "FORCE_RECALCULATE" -> 2
-            command.startsWith("SKIP_WAYPOINT:") -> 3
-            else -> 1
+            command == "REPLAY_VOICE_PROMPT" -> BeelineButtonCode.REPLAY_VOICE
+            command == "FORCE_RECALCULATE" -> BeelineButtonCode.RECALCULATE
+            command.startsWith("SKIP_WAYPOINT:") -> BeelineButtonCode.SKIP_WAYPOINT
+            else -> BeelineButtonCode.REPLAY_VOICE
         }
         activeBleServerRef?.get()?.notifyUserActionButtonPress(buttonCode)
 

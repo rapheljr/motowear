@@ -55,7 +55,7 @@ object NavigationBridgeParser {
     private val DISTANCE_REGEX =
         Regex("""(\d+(?:[.,]\d+)?)\s*(km|m|mi|yd|ft)\b""", RegexOption.IGNORE_CASE)
     private val EXIT_REGEX =
-        Regex("""(?:exit\s*#?\s*(\d+)|(\d+)(?:st|nd|rd|th)\s+exit)""", RegexOption.IGNORE_CASE)
+        Regex("""exit\s*#?\s*(\d+)|(\d+)(?:st|nd|rd|th)\s+exit""", RegexOption.IGNORE_CASE)
     private val DURATION_HR_MIN_REGEX =
         Regex("""(?:(\d+)\s*h(?:r|rs|our|ours)?\s*)?(\d+)\s*m(?:in|ins|inute|inutes)?\b""", RegexOption.IGNORE_CASE)
     private val ETA_TIME_REGEX =
@@ -104,7 +104,7 @@ object NavigationBridgeParser {
         val remainingMin = DURATION_HR_MIN_REGEX.find(subText)?.let { m ->
             val hrs = m.groupValues[1].toIntOrNull() ?: 0
             val mins = m.groupValues[2].toIntOrNull() ?: 0
-            hrs * 60 + mins
+            (hrs * 60) + mins
         } ?: 35
 
         val legProgress = if (progressMax > 0) {
