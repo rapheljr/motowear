@@ -14,6 +14,7 @@ import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.content.Context
 import android.os.ParcelUuid
+import android.util.Log
 import com.motowear.telemetry.ManeuverKind
 import com.motowear.telemetry.ProtobufTelemetryMapper
 import com.motowear.telemetry.RoutePolyline
@@ -32,9 +33,6 @@ import java.util.UUID
  * and hosts a GATT Server accepting both:
  * 1. Compact binary Beeline BLE GATT packets (`10-byte` fixed header telemetry frame), AND
  * 2. Full binary Protobuf `RideTelemetryFrame` payloads.
- *
- * All decoded frames are emitted into `WearTelemetryRepository`, allowing the watch to work
- * simultaneously with the official Beeline mobile app and the MotoWear companion app.
  */
 class BeelineBleGattPeripheralServer(context: Context) {
 
@@ -48,10 +46,12 @@ class BeelineBleGattPeripheralServer(context: Context) {
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
             isAdvertising = true
+            Log.d("BeelineBleGattServer", "BLE peripheral advertising started")
         }
 
         override fun onStartFailure(errorCode: Int) {
             isAdvertising = false
+            Log.w("BeelineBleGattServer", "BLE peripheral advertising failed with code: $errorCode")
         }
     }
 
@@ -124,8 +124,10 @@ class BeelineBleGattPeripheralServer(context: Context) {
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
                 .build()
 
+            // Keep advertiseData strictly under the 31-byte legacy BLE limit:
+            // 128-bit UUID (18B) + Flags (3B) = 21B in advertiseData; device name goes in scanResponseData.
             val advertiseData = AdvertiseData.Builder()
-                .setIncludeDeviceName(true)
+                .setIncludeDeviceName(false)
                 .addServiceUuid(ParcelUuid(BEELINE_MOTO_SERVICE_UUID))
                 .build()
 

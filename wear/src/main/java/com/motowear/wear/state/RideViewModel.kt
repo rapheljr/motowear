@@ -32,7 +32,7 @@ import kotlin.math.sin
  * - Subscribes to live 10Hz Protobuf frames from `WearTelemetryRepository` and `MessageClient`
  *   while seamlessly falling back to the 60fps local mock generator when no phone stream is active.
  * - Supports touch swipe gestures (horizontal left/right & vertical up/down) and edge tap targets
- *   to cycle across all 8 Ride Modes, alongside physical stem buttons and rotary crown events.
+ *   to cycle across all Ride Modes and Device Settings, alongside physical stem buttons and rotary crown events.
  */
 class RideViewModel(application: Application) : AndroidViewModel(application),
     MessageClient.OnMessageReceivedListener {
@@ -107,7 +107,8 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
     }
 
     private fun applyPhoneTelemetryFrame(incoming: TelemetryFrameState) {
-        lastPhonePacketTimestampMs = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
+        lastPhonePacketTimestampMs = now
         packetsReceivedCount++
 
         if (lastRemotePhoneMode != null && incoming.mode != lastRemotePhoneMode) {
@@ -134,6 +135,9 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                 mode = resolvedMode,
                 headingDegrees = cog,
                 odometerSubPage = current.odometerSubPage,
+                settingsSelectedIndex = current.settingsSelectedIndex,
+                lastPacketMsAgo = 0L,
+                packetsReceivedCount = packetsReceivedCount,
                 isTouchLocked = current.isTouchLocked,
                 isAmbientMode = dynamicAmbient,
                 burnInOffsetPxX = current.burnInOffsetPxX,
@@ -143,9 +147,7 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
     }
 
     /**
-     * Swipe gesture handler for switching across all 8 Ride Modes on the Wear OS touchscreen.
-     * - Swipe Left (finger moves right-to-left, `direction = +1`) -> Next Ride Mode
-     * - Swipe Right (finger moves left-to-right, `direction = -1`) -> Previous Ride Mode
+     * Swipe gesture handler for switching across all Ride Modes on the Wear OS touchscreen.
      */
     fun onSwipeRideMode(direction: Int) {
         val step = if (direction >= 0) 1 else -1
@@ -163,14 +165,19 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
 
     /**
      * Vertical swipe gesture handler:
-     * - On `WAYPOINT_SKIPPING`, swipe up/down increments/decrements the target waypoint (`1/3 -> 2/3`).
-     * - On `JOURNEY_TRACKING`, swipe up/down toggles the odometer sub-page (`○ ●`).
+     * - On `DEVICE_SETTINGS`, scrolls through `"About"` (0), `"Unpair"` (1), `"Reset"` (2), `"Legal"` (3).
+     * - On `WAYPOINT_SKIPPING`, increments/decrements the target waypoint (`1/3 -> 2/3`).
+     * - On `JOURNEY_TRACKING`, toggles the odometer sub-page (`○ ●`).
      * - On all other screens, cycles through the active ride modes.
      */
     fun onVerticalSwipe(direction: Int) {
         val step = if (direction >= 0) 1 else -1
         _uiState.update { state ->
             when (state.mode) {
+                ScreenMode.DEVICE_SETTINGS -> {
+                    val nextIdx = (state.settingsSelectedIndex + step).coerceIn(0, 3)
+                    state.copy(settingsSelectedIndex = nextIdx)
+                }
                 ScreenMode.WAYPOINT_SKIPPING -> {
                     val nextWp = (state.currentWaypointIdx + step).coerceIn(1, state.totalWaypoints)
                     state.copy(currentWaypointIdx = nextWp)
@@ -200,12 +207,17 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
         val current = _uiState.value
         when (zone) {
             EdgeTapZone.LEFT_9_OCLOCK -> {
-                if (current.mode == ScreenMode.WAYPOINT_SKIPPING) {
-                    _uiState.update {
-                        it.copy(currentWaypointIdx = (it.currentWaypointIdx - 1).coerceAtLeast(1))
+                when (current.mode) {
+                    ScreenMode.WAYPOINT_SKIPPING -> {
+                        _uiState.update {
+                            it.copy(currentWaypointIdx = (it.currentWaypointIdx - 1).coerceAtLeast(1))
+                        }
                     }
-                } else {
-                    onSwipeRideMode(direction = -1)
+                    ScreenMode.DEVICE_SETTINGS -> {
+                        userSwipedModeOverride = ScreenMode.QUICK_START
+                        _uiState.update { it.copy(mode = ScreenMode.QUICK_START) }
+                    }
+                    else -> onSwipeRideMode(direction = -1)
                 }
             }
             EdgeTapZone.RIGHT_3_OCLOCK -> {
@@ -217,6 +229,7 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                             )
                         }
                     }
+                    ScreenMode.DEVICE_SETTINGS -> executeSelectedDeviceSetting()
                     ScreenMode.QUICK_START,
                     ScreenMode.FAST_REROUTING -> onBottomActionButtonPress()
                     else -> onSwipeRideMode(direction = 1)
@@ -224,6 +237,38 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
             }
             EdgeTapZone.BOTTOM_6_OCLOCK -> {
                 onBottomActionButtonPress()
+            }
+        }
+    }
+
+    private fun executeSelectedDeviceSetting() {
+        _uiState.update { state ->
+            when (state.settingsSelectedIndex) {
+                0 -> {
+                    // "About" -> Show Telemetry Debug / Version inspector
+                    userSwipedModeOverride = ScreenMode.DEBUG_TELEMETRY
+                    state.copy(mode = ScreenMode.DEBUG_TELEMETRY)
+                }
+                1 -> {
+                    // "Unpair" -> Return to QR Onboarding pairing screen
+                    userSwipedModeOverride = ScreenMode.QR_ONBOARDING
+                    state.copy(mode = ScreenMode.QR_ONBOARDING)
+                }
+                2 -> {
+                    // "Reset" -> Reset odometer & average speed and return to QUICK_START
+                    userSwipedModeOverride = ScreenMode.QUICK_START
+                    state.copy(
+                        odometerKm = 0.0f,
+                        avgSpeedKmh = 0,
+                        settingsSelectedIndex = 0,
+                        mode = ScreenMode.QUICK_START
+                    )
+                }
+                else -> {
+                    // "Legal" -> Return to QUICK_START
+                    userSwipedModeOverride = ScreenMode.QUICK_START
+                    state.copy(mode = ScreenMode.QUICK_START)
+                }
             }
         }
     }
@@ -245,6 +290,10 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                 ScreenMode.QUICK_START -> {
                     userSwipedModeOverride = ScreenMode.TURN_BY_TURN
                     state.copy(mode = ScreenMode.TURN_BY_TURN)
+                }
+                ScreenMode.DEVICE_SETTINGS -> {
+                    val nextIdx = (state.settingsSelectedIndex + step).coerceIn(0, 3)
+                    state.copy(settingsSelectedIndex = nextIdx)
                 }
                 ScreenMode.TURN_BY_TURN,
                 ScreenMode.FAST_REROUTING,
@@ -268,7 +317,6 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                 }
                 ScreenMode.JOURNEY_SUMMARY,
                 ScreenMode.QR_ONBOARDING,
-                ScreenMode.DEVICE_SETTINGS,
                 ScreenMode.DEBUG_TELEMETRY -> {
                     userSwipedModeOverride = ScreenMode.QUICK_START
                     state.copy(mode = ScreenMode.QUICK_START)
@@ -284,7 +332,12 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
         _uiState.update { state ->
             when (state.mode) {
                 ScreenMode.QUICK_START -> {
-                    state.copy(useImperialUnits = !state.useImperialUnits)
+                    userSwipedModeOverride = ScreenMode.DEVICE_SETTINGS
+                    state.copy(mode = ScreenMode.DEVICE_SETTINGS)
+                }
+                ScreenMode.DEVICE_SETTINGS -> {
+                    userSwipedModeOverride = ScreenMode.QUICK_START
+                    state.copy(mode = ScreenMode.QUICK_START)
                 }
                 ScreenMode.TURN_BY_TURN,
                 ScreenMode.FAST_REROUTING -> {
@@ -305,7 +358,6 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                 }
                 ScreenMode.JOURNEY_SUMMARY,
                 ScreenMode.QR_ONBOARDING,
-                ScreenMode.DEVICE_SETTINGS,
                 ScreenMode.DEBUG_TELEMETRY -> state
             }
         }
@@ -322,6 +374,9 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                 _uiState.update {
                     it.copy(mode = ScreenMode.JOURNEY_TRACKING)
                 }
+            }
+            ScreenMode.DEVICE_SETTINGS -> {
+                executeSelectedDeviceSetting()
             }
             ScreenMode.TURN_BY_TURN -> {
                 viewModelScope.launch {
@@ -372,7 +427,6 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
             }
             ScreenMode.JOURNEY_SUMMARY,
             ScreenMode.QR_ONBOARDING,
-            ScreenMode.DEVICE_SETTINGS,
             ScreenMode.DEBUG_TELEMETRY -> {
                 userSwipedModeOverride = ScreenMode.QUICK_START
                 _uiState.update {
@@ -401,7 +455,13 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
             while (isActive) {
                 delay(16L) // ~60fps (16.6ms)
                 simulationTimeSec += 0.016f
-                val isPhoneStreamActive = (System.currentTimeMillis() - lastPhonePacketTimestampMs) < 3_000L
+                val nowMs = System.currentTimeMillis()
+                val packetAgeMs = if (lastPhonePacketTimestampMs > 0L) {
+                    nowMs - lastPhonePacketTimestampMs
+                } else {
+                    -1L
+                }
+                val isPhoneStreamActive = packetAgeMs in 0L..2_999L
 
                 _uiState.update { current ->
                     val lissajousPhase = (simulationTimeSec / 60f) * (2f * PI.toFloat())
@@ -410,6 +470,8 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
 
                     if (isPhoneStreamActive) {
                         current.copy(
+                            lastPacketMsAgo = packetAgeMs,
+                            packetsReceivedCount = packetsReceivedCount,
                             burnInOffsetPxX = shiftX,
                             burnInOffsetPxY = shiftY
                         )
@@ -418,6 +480,8 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                         val cog = resolveCogHeading(animatedSpeed, 330)
                         current.copy(
                             headingDegrees = cog,
+                            lastPacketMsAgo = packetAgeMs,
+                            packetsReceivedCount = packetsReceivedCount,
                             burnInOffsetPxX = shiftX,
                             burnInOffsetPxY = shiftY
                         )

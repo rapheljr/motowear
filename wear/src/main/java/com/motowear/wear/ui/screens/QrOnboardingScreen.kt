@@ -24,9 +24,9 @@ import com.motowear.wear.theme.BeelineColors
 /**
  * QR Code Onboarding & Pairing Screen Renderer.
  * Matches Image 1 pixel-for-pixel:
- * - Upper circular area filled with high-contrast QR code for `beeline.co/app`.
- * - Centered 20sp ExtraBold white uppercase text label: `SCAN TO GET APP`.
- * - Centered solid white capsule pill badge displaying the 4-character device ID in bold black text (`ABCD` or `8046`).
+ * - Upper circular area filled with a genuine ISO/IEC 18004 Version 2-L (25x25) QR code encoding `https://beeline.co/app`.
+ * - Centered 20sp Bold white uppercase text label: `SCAN TO GET APP`.
+ * - Centered solid white capsule pill badge displaying the 4-character device ID in bold black text (`8046`).
  */
 @Composable
 fun QrOnboardingScreen(
@@ -48,17 +48,18 @@ fun QrOnboardingScreen(
         withTransform({
             translate(state.burnInOffsetPxX, state.burnInOffsetPxY)
         }) {
-            // 1. Draw QR Code Matrix in upper circular area (X centered, Y from 4% to 48%)
-            val qrSize = w * 0.6f
+            // 1. Draw Scannable 25x25 QR Code Matrix in upper circular area
+            val qrSize = w * 0.58f
             val qrLeft = cx - (qrSize / 2f)
-            val qrTop = h * 0.05f
-            val matrix = BEELINE_APP_QR_MATRIX
+            val qrTop = h * 0.06f
+            val matrix = BEELINE_APP_QR_ROWS
             val gridCount = matrix.size
             val moduleSize = qrSize / gridCount
 
             for (r in 0 until gridCount) {
+                val rowStr = matrix[r]
                 for (c in 0 until gridCount) {
-                    if (matrix[r][c]) {
+                    if (rowStr[c] == '#') {
                         drawRect(
                             color = BeelineColors.BeelineWhite,
                             topLeft = Offset(qrLeft + (c * moduleSize), qrTop + (r * moduleSize)),
@@ -84,11 +85,11 @@ fun QrOnboardingScreen(
                 textLayoutResult = labelLayout,
                 topLeft = Offset(
                     cx - labelLayout.size.width / 2f,
-                    h * 0.75f - labelLayout.size.height / 2f
+                    h * 0.74f - labelLayout.size.height / 2f
                 )
             )
 
-            // 3. Solid White Pill/Capsule Badge with 4-character ID (ABCD or 8046) in black text
+            // 3. Solid White Pill/Capsule Badge with 4-character ID (8046) in black text
             val idStyle = TextStyle(
                 fontFamily = FontFamily.SansSerif,
                 fontWeight = FontWeight.Bold,
@@ -106,7 +107,7 @@ fun QrOnboardingScreen(
             val pillH = idLayout.size.height + 10.dp.toPx()
             val pillTopLeft = Offset(
                 cx - pillW / 2f,
-                h * 0.9f - pillH / 2f
+                h * 0.89f - pillH / 2f
             )
 
             drawRoundRect(
@@ -120,7 +121,7 @@ fun QrOnboardingScreen(
                 textLayoutResult = idLayout,
                 topLeft = Offset(
                     cx - idLayout.size.width / 2f,
-                    h * 0.9f - idLayout.size.height / 2f
+                    h * 0.89f - idLayout.size.height / 2f
                 )
             )
         }
@@ -134,29 +135,33 @@ private fun PreviewQrOnboardingScreen() {
 }
 
 /**
- * 25x25 QR Code matrix encoding `https://beeline.co/app` for pixel-accurate rendering.
+ * Standards-compliant ISO/IEC 18004 Version 2-L (25x25, Mask 0) QR Code matrix
+ * encoding `https://beeline.co/app` with Reed-Solomon GF(256) error correction.
  */
-private val BEELINE_APP_QR_MATRIX = Array(25) { r ->
-    BooleanArray(25) { c ->
-        // Finder patterns (top-left, top-right, bottom-left)
-        val inTopLeftFinder = (r in 0..6 && c in 0..6)
-        val inTopRightFinder = (r in 0..6 && c in 18..24)
-        val inBottomLeftFinder = (r in 18..24 && c in 0..6)
-
-        if (inTopLeftFinder) {
-            (r == 0 || r == 6 || c == 0 || c == 6) || (r in 2..4 && c in 2..4)
-        } else if (inTopRightFinder) {
-            val mc = c - 18
-            (r == 0 || r == 6 || mc == 0 || mc == 6) || (r in 2..4 && mc in 2..4)
-        } else if (inBottomLeftFinder) {
-            val mr = r - 18
-            (mr == 0 || mr == 6 || c == 0 || c == 6) || (mr in 2..4 && c in 2..4)
-        } else if (r == 6 || c == 6) {
-            // Timing patterns
-            (r % 2 == 0) && (c % 2 == 0)
-        } else {
-            // Data payload modules
-            ((r * 7 + c * 11 + r * c) % 3 == 0) || ((r + c) % 5 == 0) || (r in 12..14 && c in 12..14)
-        }
-    }
-}
+private val BEELINE_APP_QR_ROWS = arrayOf(
+    "#######...#..###..#######",
+    "#.....#..#....###.#.....#",
+    "#.###.#.#..#...##.#.###.#",
+    "#.###.#..#..#..#..#.###.#",
+    "#.###.#..#..####..#.###.#",
+    "#.....#...###.##..#.....#",
+    "#######.#.#.#.#.#.#######",
+    "........#..#.##.#........",
+    "###.#####...##.####...#..",
+    "..####.#.#.###...##.....#",
+    "...##.###.###.#..##...###",
+    "####.#.####.#####..#...#.",
+    "##..#.#.#.##.#..###..#.##",
+    "...###....##.##.###..#..#",
+    "#.#######.#...#.####..###",
+    ".#.........#.#..#...#..#.",
+    "#.#...#####.##.#######...",
+    "........##.######...##.##",
+    "#######.#..##.###.#.##.##",
+    "#.....#.#.#.##..#...##.##",
+    "#.###.#.####..#.######.##",
+    "#.###.#..###.......####..",
+    "#.###.#.##...#......#...#",
+    "#.....#.#..#...##.#.##.#.",
+    "#######.##..#..##.##...##"
+)

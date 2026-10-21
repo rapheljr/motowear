@@ -44,12 +44,7 @@ import kotlin.math.abs
 private const val SWIPE_THRESHOLD_PX = 42f
 
 /**
- * Root Wear OS Composable routing all 8 Beeline Moto 2 Ride Modes.
- * Supports:
- * - Brief 550ms Beeline Roundel & Wordmark cold-boot splash (`BeelineBootSplashOverlay`, well within <1.2s SLA).
- * - Horizontal & vertical touch swipe gestures to cycle across all 8 Ride Modes.
- * - Interactive tap zones on the 9 o'clock (`<`), 3 o'clock (`>`), and 6 o'clock confirmation dome prompts.
- * - Rotary crown scrolling and physical stem buttons.
+ * Root Wear OS Composable routing all Beeline Moto 2 Ride & Utility Modes.
  */
 @Composable
 fun MotoWearApp(
@@ -83,7 +78,7 @@ fun MotoWearApp(
                         }
                     }
                 }
-                // Swipe gestures (Left/Right and Up/Down) to switch ride modes on the watch screen
+                // Swipe gestures (Left/Right and Up/Down) to switch ride modes or scroll settings
                 .pointerInput(state.isTouchLocked) {
                     if (!state.isTouchLocked) {
                         detectDragGestures(
@@ -144,8 +139,8 @@ fun MotoWearApp(
         ) {
             MotoWearScreenContent(
                 state = state,
-                lastPacketMsAgo = viewModel.lastPacketMsAgo,
-                totalPacketsCount = viewModel.packetsReceivedCount
+                lastPacketMsAgo = state.lastPacketMsAgo,
+                totalPacketsCount = state.packetsReceivedCount
             )
 
             AnimatedVisibility(
@@ -162,8 +157,8 @@ fun MotoWearApp(
 fun MotoWearScreenContent(
     state: TelemetryFrameState,
     modifier: Modifier = Modifier,
-    lastPacketMsAgo: Long = 16L,
-    totalPacketsCount: Long = 142L
+    lastPacketMsAgo: Long = state.lastPacketMsAgo,
+    totalPacketsCount: Long = state.packetsReceivedCount
 ) {
     when (state.mode) {
         ScreenMode.TURN_BY_TURN,
@@ -174,7 +169,11 @@ fun MotoWearScreenContent(
         ScreenMode.QUICK_START -> QuickStartScreen(state = state, modifier = modifier)
         ScreenMode.WAYPOINT_SKIPPING -> WaypointSkippingScreen(state = state, modifier = modifier)
         ScreenMode.JOURNEY_SUMMARY -> JourneySummaryScreen(state = state, modifier = modifier)
-        ScreenMode.DEVICE_SETTINGS -> DeviceSettingsScreen(state = state, modifier = modifier)
+        ScreenMode.DEVICE_SETTINGS -> DeviceSettingsScreen(
+            state = state,
+            selectedIndex = state.settingsSelectedIndex,
+            modifier = modifier
+        )
         ScreenMode.QR_ONBOARDING -> QrOnboardingScreen(state = state, modifier = modifier)
         ScreenMode.DEBUG_TELEMETRY -> DebugTelemetryScreen(
             state = state,
