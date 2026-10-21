@@ -13,6 +13,9 @@ enum ActiveScreenMode {
   JOURNEY_TRACKING = 5;
   WAYPOINT_SKIPPING = 6;
   JOURNEY_SUMMARY = 7;
+  DEVICE_SETTINGS = 8;
+  QR_ONBOARDING = 9;
+  DEBUG_TELEMETRY = 10;
 }
 
 enum ManeuverType {

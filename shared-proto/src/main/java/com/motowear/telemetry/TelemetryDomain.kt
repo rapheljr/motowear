@@ -82,6 +82,11 @@ data class TelemetryFrameState(
     val summaryDurationMinutes: Int = 32,
     val summaryAvgSpeedKmh: Float = 38.8f,
 
+    // Device Settings & Debug Telemetry State
+    val settingsSelectedIndex: Int = 0, // 0="About", 1="Unpair", 2="Reset", 3="Legal"
+    val lastPacketMsAgo: Long = -1L,
+    val packetsReceivedCount: Long = 0L,
+
     // Hardware & Power state
     val isTouchLocked: Boolean = false,
     val isAmbientMode: Boolean = false,

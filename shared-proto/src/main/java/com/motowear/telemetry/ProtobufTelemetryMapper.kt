@@ -25,15 +25,15 @@ object ProtobufTelemetryMapper {
             .setAvgSpeedKmh(avgSpeedKmh.coerceAtLeast(0))
             .setSpeedLimitApproachRatio(speedLimitApproachRatio.coerceIn(0f, 1f))
             .setRemainingDurationMin(remainingDurationMin.coerceAtLeast(0))
-            .setElapsedTimeStr(elapsedTimeStr ?: "")
-            .setEtaTimeStr(etaTimeStr ?: "")
+            .setElapsedTimeStr(elapsedTimeStr)
+            .setEtaTimeStr(etaTimeStr)
             .setRemainingDistance(remainingDistance.coerceAtLeast(0f))
             .setUseImperialUnits(useImperialUnits)
             .setRouteCompletionRatio(routeCompletionRatio.coerceIn(0f, 1f))
             .setHeadingDegrees(((headingDegrees % 360) + 360) % 360)
-            .setCardinalDirection(cardinalDirection ?: "")
+            .setCardinalDirection(cardinalDirection)
             .setOdometerKm(odometerKm.coerceAtLeast(0f))
-            .setCurrentClockStr(currentClockStr ?: "")
+            .setCurrentClockStr(currentClockStr)
             .setCurrentWaypointIdx(currentWaypointIdx.coerceAtLeast(1))
             .setTotalWaypoints(totalWaypoints.coerceAtLeast(1))
 
@@ -117,7 +117,9 @@ object ProtobufTelemetryMapper {
         ScreenMode.JOURNEY_TRACKING -> ActiveScreenMode.JOURNEY_TRACKING
         ScreenMode.WAYPOINT_SKIPPING -> ActiveScreenMode.WAYPOINT_SKIPPING
         ScreenMode.JOURNEY_SUMMARY -> ActiveScreenMode.JOURNEY_SUMMARY
-        ScreenMode.DEVICE_SETTINGS, ScreenMode.QR_ONBOARDING, ScreenMode.DEBUG_TELEMETRY -> ActiveScreenMode.QUICK_START
+        ScreenMode.DEVICE_SETTINGS -> ActiveScreenMode.DEVICE_SETTINGS
+        ScreenMode.QR_ONBOARDING -> ActiveScreenMode.QR_ONBOARDING
+        ScreenMode.DEBUG_TELEMETRY -> ActiveScreenMode.DEBUG_TELEMETRY
     }
 
     private fun ActiveScreenMode.toDomainMode(): ScreenMode = when (this) {
@@ -129,6 +131,9 @@ object ProtobufTelemetryMapper {
         ActiveScreenMode.JOURNEY_TRACKING -> ScreenMode.JOURNEY_TRACKING
         ActiveScreenMode.WAYPOINT_SKIPPING -> ScreenMode.WAYPOINT_SKIPPING
         ActiveScreenMode.JOURNEY_SUMMARY -> ScreenMode.JOURNEY_SUMMARY
+        ActiveScreenMode.DEVICE_SETTINGS -> ScreenMode.DEVICE_SETTINGS
+        ActiveScreenMode.QR_ONBOARDING -> ScreenMode.QR_ONBOARDING
+        ActiveScreenMode.DEBUG_TELEMETRY -> ScreenMode.DEBUG_TELEMETRY
         ActiveScreenMode.UNRECOGNIZED -> ScreenMode.TURN_BY_TURN
     }
 
