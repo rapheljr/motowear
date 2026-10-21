@@ -3,12 +3,13 @@ package com.motowear.phone
 import com.motowear.phone.bridge.NavigationBridgeParser
 import com.motowear.telemetry.ManeuverKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * Unit tests for `NavigationBridgeParser` verifying notification scraping from the
- * Official Beeline App (`co.beeline`), Google Maps (`com.google.android.apps.maps`), and OsmAnd (`net.osmand`).
+ * Official Beeline App (`co.beeline` v4.2.8704 `TurnNotificationType`), Google Maps, and OsmAnd.
  */
 class NavigationBridgeParserTest {
 
@@ -26,7 +27,29 @@ class NavigationBridgeParserTest {
         assertEquals(2, snapshot.roundaboutExit)
         assertEquals(75, snapshot.remainingDurationMin)
         assertEquals("10:30", snapshot.etaStr)
+        assertFalse(snapshot.useImperialUnits)
         assertTrue(snapshot.syntheticMapVectors.any { it.isPrimaryRoute })
+    }
+
+    @Test
+    fun `parseNotificationTexts detects imperial units and arrival notifications from co_beeline`() {
+        val imperialSnapshot = NavigationBridgeParser.parseNotificationTexts(
+            packageName = "co.beeline",
+            title = "200 yd — Fork left onto Ridge Hwy",
+            text = "Keep left at fork",
+            subText = "25 min • 14 mi • 11:05"
+        )
+        assertTrue(imperialSnapshot.useImperialUnits)
+        assertEquals(ManeuverKind.SLIGHT_LEFT, imperialSnapshot.maneuver)
+        assertEquals(182, imperialSnapshot.distanceToNextMeters)
+
+        val arrivedSnapshot = NavigationBridgeParser.parseNotificationTexts(
+            packageName = "co.beeline",
+            title = "Destination reached",
+            text = "You have arrived at Summit Viewpoint"
+        )
+        assertTrue(arrivedSnapshot.hasArrived)
+        assertEquals(0, arrivedSnapshot.distanceToNextMeters)
     }
 
     @Test

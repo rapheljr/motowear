@@ -17,7 +17,9 @@ data class ExternalNavSnapshot(
     val etaStr: String = "09:45",
     val remainingDurationMin: Int = 45,
     val remainingDistanceKm: Float = 24.0f,
+    val useImperialUnits: Boolean = false,
     val isRerouting: Boolean = false,
+    val hasArrived: Boolean = false,
     val syntheticMapVectors: List<RoutePolyline> = emptyList(),
     val timestampMs: Long = System.currentTimeMillis()
 )
@@ -36,9 +38,8 @@ object ExternalNavBridgeRepository {
 }
 
 /**
- * Pure Kotlin parser that extracts structured turn telemetry (`ManeuverKind`, `distanceToNextMeters`,
- * roundabout exits, ETA, and synthetic 2D intersection vectors) from ongoing navigation notifications
- * posted by the Official Beeline App (`co.beeline`), Google Maps (`com.google.android.apps.maps`),
+ * Pure Kotlin parser aligned with `co.beeline.navigation.notifications.TurnNotificationType`
+ * (verified from official `co.beeline` v4.2.8704), Google Maps (`com.google.android.apps.maps`),
  * and OsmAnd (`net.osmand`).
  */
 object NavigationBridgeParser {
@@ -54,9 +55,9 @@ object NavigationBridgeParser {
     private val DISTANCE_REGEX =
         Regex("""(\d+(?:[.,]\d+)?)\s*(km|m|mi|yd|ft)\b""", RegexOption.IGNORE_CASE)
     private val EXIT_REGEX =
-        Regex("""(?:exit\s*(\d+)|(\d+)(?:st|nd|rd|th)\s+exit)""", RegexOption.IGNORE_CASE)
+        Regex("""(?:exit\s*#?\s*(\d+)|(\d+)(?:st|nd|rd|th)\s+exit)""", RegexOption.IGNORE_CASE)
     private val DURATION_HR_MIN_REGEX =
-        Regex("""(?:(\d+)\s*h(?:r|rs)?\s*)?(\d+)\s*m(?:in|ins)?\b""", RegexOption.IGNORE_CASE)
+        Regex("""(?:(\d+)\s*h(?:r|rs|our|ours)?\s*)?(\d+)\s*m(?:in|ins|inute|inutes)?\b""", RegexOption.IGNORE_CASE)
     private val ETA_TIME_REGEX =
         Regex("""\b(\d{1,2}:\d{2}(?:\s*[ap]m)?)\b""", RegexOption.IGNORE_CASE)
 
@@ -78,11 +79,18 @@ object NavigationBridgeParser {
 
         val isRerouting = lower.contains("rerouting") ||
             lower.contains("recalculating") ||
-            lower.contains("off route")
+            lower.contains("off route") ||
+            lower.contains("back on route")
+
+        val hasArrived = lower.contains("arrived") ||
+            lower.contains("destination reached") ||
+            lower.contains("finish")
 
         val distanceMeters = extractPrimaryDistanceMeters(title)
             ?: extractPrimaryDistanceMeters(text)
-            ?: 250
+            ?: if (hasArrived) 0 else 250
+
+        val usesImperial = DISTANCE_REGEX.find(combined)?.groupValues?.get(2)?.lowercase() in setOf("mi", "yd", "ft")
 
         val maneuver = classifyManeuverFromText(lower)
         val roundExit = EXIT_REGEX.find(lower)?.let { match ->
@@ -117,7 +125,9 @@ object NavigationBridgeParser {
             etaStr = etaStr,
             remainingDurationMin = remainingMin,
             remainingDistanceKm = (distanceMeters / 1000f).coerceAtLeast(1.2f),
+            useImperialUnits = usesImperial,
             isRerouting = isRerouting,
+            hasArrived = hasArrived,
             syntheticMapVectors = synthesize2DTurnVectors(maneuver, distanceMeters)
         )
     }
@@ -141,7 +151,8 @@ object NavigationBridgeParser {
         return when {
             lowerText.contains("u-turn") || lowerText.contains("uturn") || lowerText.contains("make a u") ->
                 ManeuverKind.UTURN
-            lowerText.contains("roundabout") && lowerText.contains("left") ->
+            (lowerText.contains("roundabout") || lowerText.contains("rotary") || lowerText.contains("traffic circle")) &&
+                lowerText.contains("left") ->
                 ManeuverKind.ROUNDABOUT_LEFT
             lowerText.contains("roundabout") || lowerText.contains("rotary") || lowerText.contains("traffic circle") ->
                 ManeuverKind.ROUNDABOUT_RIGHT
@@ -149,9 +160,11 @@ object NavigationBridgeParser {
                 ManeuverKind.SHARP_LEFT
             lowerText.contains("sharp right") || lowerText.contains("hard right") || lowerText.contains("hairpin right") ->
                 ManeuverKind.SHARP_RIGHT
-            lowerText.contains("slight left") || lowerText.contains("keep left") || lowerText.contains("bear left") ->
+            lowerText.contains("slight left") || lowerText.contains("keep left") ||
+                lowerText.contains("bear left") || lowerText.contains("fork left") ->
                 ManeuverKind.SLIGHT_LEFT
-            lowerText.contains("slight right") || lowerText.contains("keep right") || lowerText.contains("bear right") ->
+            lowerText.contains("slight right") || lowerText.contains("keep right") ||
+                lowerText.contains("bear right") || lowerText.contains("fork right") ->
                 ManeuverKind.SLIGHT_RIGHT
             lowerText.contains("left") ->
                 ManeuverKind.TURN_LEFT
@@ -170,7 +183,6 @@ object NavigationBridgeParser {
         maneuver: ManeuverKind,
         distanceToNextMeters: Int
     ): List<RoutePolyline> {
-        // Normalize turn vertex Y position based on approaching distance (0m -> 0.0, >=300m -> -0.52)
         val turnY = (-0.12f - (distanceToNextMeters.coerceIn(0, 350) / 350f) * 0.42f)
             .coerceIn(-0.62f, -0.10f)
 

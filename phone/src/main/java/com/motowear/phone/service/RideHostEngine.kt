@@ -233,8 +233,13 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
             val elapsedStr = String.format(Locale.US, "%02d:%02d", elapsedMinutes / 60, elapsedMinutes % 60)
 
             _telemetryState.update { prev ->
+                val resolvedBridgedMode = when {
+                    bridged.hasArrived -> ScreenMode.JOURNEY_SUMMARY
+                    bridged.isRerouting -> ScreenMode.FAST_REROUTING
+                    else -> prev.mode
+                }
                 prev.copy(
-                    mode = if (bridged.isRerouting) ScreenMode.FAST_REROUTING else prev.mode,
+                    mode = resolvedBridgedMode,
                     mapVectors = bridged.syntheticMapVectors,
                     nextManeuver = bridged.maneuver,
                     roundExitNumber = bridged.roundaboutExit,
@@ -249,6 +254,7 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
                     elapsedTimeStr = elapsedStr,
                     etaTimeStr = bridged.etaStr,
                     remainingDistance = bridged.remainingDistanceKm,
+                    useImperialUnits = bridged.useImperialUnits,
                     headingDegrees = headingInt,
                     cardinalDirection = LocalVectorProjector.cardinalFromDegrees(headingInt),
                     currentClockStr = clockStr
