@@ -125,8 +125,29 @@ Rotate the watch crown or swipe to screen mode `10` (`DEBUG_TELEMETRY`) to view 
 * Total packet counter.
 * Active maneuver index, speed limits, and vector segment counts.
 
-### 3. Pairing with Official Beeline App (`co.beeline`)
-1. Ensure Bluetooth permissions are granted on the watch.
-2. Launch MotoWear OS on the watch (it starts advertising `C5D70001` as `"Beeline Moto II"`).
-3. Open the official **Beeline** app on your phone $\to$ go to **Devices** $\to$ **Pair Device** $\to$ **Beeline Moto II**.
-4. The Beeline app will discover the watch, establish a GATT connection, and stream live navigation data directly!
+### 3. Testing with Official Beeline App (`co.beeline_4.2.8704.xapk`)
+
+#### Step A: Installing Official Beeline App on Phone Emulator
+To test navigation bridging with the official Beeline app on an ARM64 phone emulator or physical device:
+```bash
+# 1. Unzip the XAPK package
+unzip -o co.beeline_4.2.8704.xapk -d /tmp/beeline_xapk
+
+# 2. Install split APKs together onto target phone emulator (e.g. emulator-5556)
+adb -s emulator-5556 install-multiple /tmp/beeline_xapk/co.beeline.apk \
+                                       /tmp/beeline_xapk/config.arm64_v8a.apk \
+                                       /tmp/beeline_xapk/config.xhdpi.apk
+```
+
+#### Step B: Testing Ingest Path 2 (Notification Listener Bridge in Emulator)
+1. Launch **MotoWear Companion** on the phone emulator.
+2. Tap **Grant Notification Access** and enable permission for *MotoWear Beeline & Maps Bridge*.
+3. Launch **MotoWear OS** on the Wear OS watch emulator (`emulator-5554`).
+4. Open the **Beeline App** on the phone emulator $\to$ Sign in $\to$ Plan a ride $\to$ Tap **Go**.
+5. The Beeline app posts turn notifications which **MotoWear Companion** intercepts and streams live 2D vectors to the watch display in real-time.
+
+#### Step C: Testing Ingest Path 1 (Direct BLE GATT Pairing on Physical Hardware)
+1. Ensure Bluetooth is enabled on your physical Wear OS watch running MotoWear OS.
+2. Launch MotoWear OS (it starts advertising `C5D70001` as `"Beeline Moto II"`).
+3. Open the official **Beeline** app on your physical smartphone $\to$ go to **Devices** $\to$ **Pair Device** $\to$ **Beeline Moto II**.
+4. The Beeline app discovers the watch over Bluetooth BLE, executes the Wire-Protobuf handshake, and streams navigation directly to the watch without needing a companion app!

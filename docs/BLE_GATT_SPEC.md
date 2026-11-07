@@ -127,3 +127,13 @@ When the rider presses physical watch buttons (or rotates the crown), `BeelineBl
   * `1`: Top Stem Button Short Press / Next Screen
   * `2`: Bottom Stem Button / Confirm / Skip Waypoint
   * `3`: Top Stem Button Long Press (>1.5s) / Touch Lock Toggle
+
+---
+
+## 5. Reverse Engineering Methodology & Interoperability 🛡️
+
+MotoWear OS was built using clean-room specification analysis of **`co.beeline_4.2.8704.xapk`**:
+
+1. **Protocol Analysis**: Extracted BLE Service UUIDs (`C5D70001`, `258EAFA5`, `0x180A`), characteristic opcodes, `TurnNotificationType` structures, and Protobuf schema definitions (`co.beeline.proto`).
+2. **Clean-Room Implementation**: All Kotlin and Jetpack Compose code in MotoWear OS is 100% original implementation designed for inter-device compatibility under standard interoperability principles.
+3. **Dual Environment Verification**: Verified via automated unit tests (`BleAndProtobufDecoderTest.kt`), virtual device deployments (`emulator-5554` & `emulator-5556`), and live hardware pairing.

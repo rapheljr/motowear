@@ -14,7 +14,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -75,10 +74,10 @@ class MainActivity : ComponentActivity() {
                 var pendingStartStreaming by remember { mutableStateOf(false) }
 
                 val gpxPicker = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.GetContent()
+                    contract = ActivityResultContracts.GetContent(),
                 ) { uri: Uri? ->
-                    if (uri != null) {
-                        contentResolver.openInputStream(uri)?.use { stream ->
+                    uri?.let {
+                        contentResolver.openInputStream(it)?.use { stream ->
                             hostEngine.loadGpxFromStream(stream)
                         }
                     }
@@ -87,8 +86,8 @@ class MainActivity : ComponentActivity() {
                 val permissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestMultiplePermissions()
                 ) { grants ->
-                    val hasLocation = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                        grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                    val hasLocation = (grants[Manifest.permission.ACCESS_FINE_LOCATION] == true) ||
+                        (grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true)
                     if (hasLocation) {
                         hostEngine.setUseLiveHardwareGps(true)
                     }
@@ -140,9 +139,7 @@ class MainActivity : ComponentActivity() {
                             hostEngine.setUseLiveHardwareGps(false)
                         }
                     },
-                    onRequestStartStreaming = {
-                        requestPermissionsAndStartStream()
-                    }
+                    onRequestStartStreaming = ::requestPermissionsAndStartStream,
                 )
             }
         }
@@ -154,7 +151,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CompanionHostDashboard(
     engine: RideHostEngine,

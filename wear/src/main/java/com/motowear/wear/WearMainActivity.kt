@@ -2,7 +2,6 @@ package com.motowear.wear
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
@@ -66,10 +65,8 @@ class WearMainActivity : ComponentActivity() {
         }
 
         val blePermissionsNeeded = buildList {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                add(Manifest.permission.BLUETOOTH_ADVERTISE)
-                add(Manifest.permission.BLUETOOTH_CONNECT)
-            }
+            add(Manifest.permission.BLUETOOTH_ADVERTISE)
+            add(Manifest.permission.BLUETOOTH_CONNECT)
         }
 
         val hasBlePermissions = blePermissionsNeeded.all {
