@@ -1,6 +1,9 @@
 package com.motowear.phone.service
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import com.google.android.gms.wearable.MessageClient
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.Wearable
@@ -84,7 +87,20 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
 
     init {
         messageClient.addListener(this)
+        checkAndAutoEnableLiveGps()
         updateTelemetrySnapshot(dtSeconds = 0.0)
+    }
+
+    private fun checkAndAutoEnableLiveGps() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            appContext, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+            appContext, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission && !_useLiveHardwareGps.value) {
+            setUseLiveHardwareGps(true)
+        }
     }
 
     fun loadGpxFromStream(inputStream: InputStream) {
@@ -169,6 +185,7 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
 
     fun startStreaming() {
         if (_isStreaming.value) return
+        checkAndAutoEnableLiveGps()
         _isStreaming.value = true
         rideStartEpochMs = System.currentTimeMillis()
 
@@ -224,7 +241,7 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
         }
 
         // Check Ingest Path 2 first: Is an external navigation app (Official Beeline / Google Maps / OsmAnd) active?
-        val bridged = externalNavSnapshot.value
+        val bridged = ExternalNavBridgeRepository.getValidSnapshot()
         if (bridged != null) {
             val headingInt = lastValidCogDegrees.roundToInt() % 360
             val clockFormat = SimpleDateFormat("hh:mm a", Locale.US)
@@ -247,9 +264,9 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
                     legProgressRatio = bridged.legProgressRatio,
                     isOffRoute = bridged.isRerouting,
                     currentSpeedKmh = activeSpeedKmh,
-                    speedLimitKmh = 70,
-                    avgSpeedKmh = (activeSpeedKmh * 0.9f).roundToInt(),
-                    speedLimitApproachRatio = (activeSpeedKmh / 70f).coerceIn(0f, 1f),
+                    speedLimitKmh = 0,
+                    avgSpeedKmh = activeSpeedKmh,
+                    speedLimitApproachRatio = 0f,
                     remainingDurationMin = bridged.remainingDurationMin,
                     elapsedTimeStr = elapsedStr,
                     etaTimeStr = bridged.etaStr,
@@ -309,10 +326,14 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
             )
         }
 
+        val activeNodeIdx = route.nodes.indexOfLast { it.cumulativeDistanceMeters <= distanceAlongRouteMeters }
+            .coerceIn(0, route.nodes.lastIndex)
+
         val projectedSlice = LocalVectorProjector.projectRouteWindow(
             route = route,
             riderPosition = riderGeoPoint,
-            headingCogDegrees = lastValidCogDegrees
+            headingCogDegrees = lastValidCogDegrees,
+            lastKnownIndex = activeNodeIdx
         )
 
         if (liveSnapshot != null) {
@@ -361,7 +382,23 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
         val remainingMin = ((remainingMeters / 1000.0) / (activeSpeedKmh.coerceAtLeast(20) / 60.0)).roundToInt()
         val clockFormat = SimpleDateFormat("hh:mm a", Locale.US)
         val clockStr = clockFormat.format(Date()).lowercase(Locale.US)
+        val etaEpochMs = System.currentTimeMillis() + (remainingMin * 60_000L)
+        val calculatedEtaStr = clockFormat.format(Date(etaEpochMs)).lowercase(Locale.US)
         val headingInt = lastValidCogDegrees.roundToInt() % 360
+
+        val elapsedHours = elapsedMinutes / 60.0
+        val calculatedAvgSpeed = if (elapsedHours > 0.001) {
+            ((distanceAlongRouteMeters / 1000.0) / elapsedHours).roundToInt()
+        } else {
+            activeSpeedKmh
+        }
+
+        val currentSpeedLimit = riderGeoPoint.speedLimitKmh
+        val calculatedApproachRatio = if (currentSpeedLimit > 0) {
+            (activeSpeedKmh.toFloat() / currentSpeedLimit.toFloat()).coerceIn(0f, 1f)
+        } else {
+            0f
+        }
 
         _telemetryState.update { prev ->
             val resolvedMode = when {
@@ -378,20 +415,19 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
                 legProgressRatio = legProgress,
                 isOffRoute = isReroutingActive,
                 currentSpeedKmh = activeSpeedKmh,
-                speedLimitKmh = riderGeoPoint.speedLimitKmh,
-                avgSpeedKmh = (activeSpeedKmh * 0.9f).roundToInt(),
-                speedLimitApproachRatio = (activeSpeedKmh.toFloat() / riderGeoPoint.speedLimitKmh.coerceAtLeast(1))
-                    .coerceIn(0f, 1f),
+                speedLimitKmh = currentSpeedLimit,
+                avgSpeedKmh = calculatedAvgSpeed,
+                speedLimitApproachRatio = calculatedApproachRatio,
                 remainingDurationMin = remainingMin.coerceAtLeast(1),
                 elapsedTimeStr = elapsedStr,
-                etaTimeStr = "09:45",
+                etaTimeStr = calculatedEtaStr,
                 remainingDistance = (remainingMeters / 1000.0).toFloat(),
                 routeCompletionRatio = (distanceAlongRouteMeters / route.totalDistanceMeters.coerceAtLeast(1.0))
                     .toFloat()
                     .coerceIn(0f, 1f),
                 headingDegrees = headingInt,
                 cardinalDirection = LocalVectorProjector.cardinalFromDegrees(headingInt),
-                odometerKm = (99.9f + (distanceAlongRouteMeters / 1000.0).toFloat()),
+                odometerKm = (distanceAlongRouteMeters / 1000.0).toFloat(),
                 currentClockStr = clockStr,
                 totalWaypoints = route.waypoints.size.coerceAtLeast(1)
             )
@@ -411,6 +447,11 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
                 }
                 command.startsWith("SKIP_WAYPOINT:") -> {
                     val targetWp = command.substringAfter("SKIP_WAYPOINT:").toIntOrNull() ?: 1
+                    val route = _activeRoute.value
+                    if (route.nodes.isNotEmpty()) {
+                        val wpFraction = (targetWp - 1).toDouble() / route.waypoints.size.coerceAtLeast(1).toDouble()
+                        distanceAlongRouteMeters = (wpFraction * route.totalDistanceMeters).coerceIn(0.0, route.totalDistanceMeters)
+                    }
                     _telemetryState.update {
                         it.copy(
                             currentWaypointIdx = targetWp.coerceIn(1, it.totalWaypoints),
@@ -427,5 +468,16 @@ class RideHostEngine(context: Context) : MessageClient.OnMessageReceivedListener
         liveGpsJob?.cancel()
         messageClient.removeListener(this)
         broadcaster.shutdown()
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: RideHostEngine? = null
+
+        fun getInstance(context: Context): RideHostEngine {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: RideHostEngine(context.applicationContext).also { INSTANCE = it }
+            }
+        }
     }
 }

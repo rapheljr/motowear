@@ -17,3 +17,4 @@ local.properties
 *.apk
 *.xapk
 compressed_original-*.png
+.kotlin/

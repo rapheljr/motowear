@@ -49,13 +49,17 @@ class DynamicWakeController {
         val params = window.attributes
         if (!shouldThrottleToAmbient) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            params.screenBrightness = FULL_BRIGHTNESS
-            window.attributes = params
+            if (params.screenBrightness != FULL_BRIGHTNESS) {
+                params.screenBrightness = FULL_BRIGHTNESS
+                window.attributes = params
+            }
             return false // Full active mode (solid fills)
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            params.screenBrightness = AMBIENT_BRIGHTNESS_25_PERCENT
-            window.attributes = params
+            if (params.screenBrightness != AMBIENT_BRIGHTNESS_25_PERCENT) {
+                params.screenBrightness = AMBIENT_BRIGHTNESS_25_PERCENT
+                window.attributes = params
+            }
             return true // Active Ambient mode (hollow 1.5dp vector outlines + Lissajous shift)
         }
     }

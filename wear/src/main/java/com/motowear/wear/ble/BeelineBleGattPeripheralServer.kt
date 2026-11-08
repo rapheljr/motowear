@@ -268,9 +268,8 @@ class BeelineBleGattPeripheralServer(context: Context) {
         val adapter = bluetoothAdapter ?: return
         if (!adapter.isEnabled) return
 
-        runCatching {
-            adapter.name = "Beeline Moto II"
-        }
+        // Beeline GATT Peripheral setup
+
 
         runCatching {
             pendingServicesQueue.clear()

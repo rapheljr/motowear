@@ -1,6 +1,6 @@
 # Navigation Notification Bridge Specification 🌉📱
 
-The MotoWear OS Navigation Notification Bridge ([`NavigationNotificationBridgeService.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/main/java/com/motowear/phone/bridge/NavigationNotificationBridgeService.kt) and [`NavigationBridgeParser.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/main/java/com/motowear/phone/bridge/NavigationBridgeParser.kt)) enables real-time scraping and parsing of navigation guidance emitted by external Android navigation apps.
+The MotoWear OS Navigation Notification Bridge ([`NavigationNotificationBridgeService.kt`](../phone/src/main/java/com/motowear/phone/bridge/NavigationNotificationBridgeService.kt) and [`NavigationBridgeParser.kt`](../phone/src/main/java/com/motowear/phone/bridge/NavigationBridgeParser.kt)) enables real-time scraping and parsing of navigation guidance emitted by external Android navigation apps.
 
 This allows riders to use **Google Maps**, **OsmAnd**, or the **Official Beeline App** on their Android phone while streaming authentic Beeline Moto 2 turn-by-turn guidance, vector maps, and metrics directly to their smartwatch.
 

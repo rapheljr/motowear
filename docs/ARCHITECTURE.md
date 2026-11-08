@@ -78,28 +78,28 @@ The codebase is structured into three modular Gradle subprojects:
 ### `:shared-proto`
 * **Purpose**: Single source of truth for the binary data protocol between the Android companion app and the Wear OS watch.
 * **Key Components**:
-  * [`telemetry.proto`](file:///Users/abin/workspace/projects/motonavi/shared-proto/src/main/proto/telemetry.proto): Protocol Buffers schema declaring `RideTelemetryFrame`, `PolylineSegment`, `Point2D`, `ActiveScreenMode`, and `ManeuverType`.
-  * [`TelemetryDomain.kt`](file:///Users/abin/workspace/projects/motonavi/shared-proto/src/main/java/com/motowear/telemetry/TelemetryDomain.kt): Idiomatic Kotlin immutable data classes (`TelemetryFrameState`, `RoutePolyline`, `Vec2`, `ScreenMode`, `ManeuverKind`).
-  * [`ProtobufTelemetryMapper.kt`](file:///Users/abin/workspace/projects/motonavi/shared-proto/src/main/java/com/motowear/telemetry/ProtobufTelemetryMapper.kt): Zero-allocation bi-directional serialisation between Protobuf generated classes and Kotlin domain models.
+  * [`telemetry.proto`](../shared-proto/src/main/proto/telemetry.proto): Protocol Buffers schema declaring `RideTelemetryFrame`, `PolylineSegment`, `Point2D`, `ActiveScreenMode`, and `ManeuverType`.
+  * [`TelemetryDomain.kt`](../shared-proto/src/main/java/com/motowear/telemetry/TelemetryDomain.kt): Idiomatic Kotlin immutable data classes (`TelemetryFrameState`, `RoutePolyline`, `Vec2`, `ScreenMode`, `ManeuverKind`).
+  * [`ProtobufTelemetryMapper.kt`](../shared-proto/src/main/java/com/motowear/telemetry/ProtobufTelemetryMapper.kt): Zero-allocation bi-directional serialisation between Protobuf generated classes and Kotlin domain models.
 
 ### `:wear`
 * **Purpose**: Low-latency, sunlight-readable circular smartwatch application.
 * **Key Components**:
-  * [`WearMainActivity.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/WearMainActivity.kt): Activity entry point managing ambient lifecycle, Bluetooth permissions, stem button listeners (`KEYCODE_STEM_1`, `KEYCODE_STEM_2`), and Cold Boot SLAs.
-  * [`BeelineBleGattPeripheralServer.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ble/BeelineBleGattPeripheralServer.kt): Reverse-engineered BLE peripheral emulation supporting direct connection with the official Beeline mobile app without any intermediary phone app.
-  * [`RideViewModel.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/state/RideViewModel.kt): Reactive StateFlow repository binding, hardware button dispatcher, screen mode transitions, and fallback 60fps mock telemetry generator.
-  * [`DynamicWakeController.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/power/DynamicWakeController.kt): Dynamic Distance Wake controller that activates high-contrast hollow ambient mode during straightaways (`> 400m`) and restores full brightness `5s` prior to maneuvers.
+  * [`WearMainActivity.kt`](../wear/src/main/java/com/motowear/wear/WearMainActivity.kt): Activity entry point managing ambient lifecycle, Bluetooth permissions, stem button listeners (`KEYCODE_STEM_1`, `KEYCODE_STEM_2`), and Cold Boot SLAs.
+  * [`BeelineBleGattPeripheralServer.kt`](../wear/src/main/java/com/motowear/wear/ble/BeelineBleGattPeripheralServer.kt): Reverse-engineered BLE peripheral emulation supporting direct connection with the official Beeline mobile app without any intermediary phone app.
+  * [`RideViewModel.kt`](../wear/src/main/java/com/motowear/wear/state/RideViewModel.kt): Reactive StateFlow repository binding, hardware button dispatcher, screen mode transitions, and fallback 60fps mock telemetry generator.
+  * [`DynamicWakeController.kt`](../wear/src/main/java/com/motowear/wear/power/DynamicWakeController.kt): Dynamic Distance Wake controller that activates high-contrast hollow ambient mode during straightaways (`> 400m`) and restores full brightness `5s` prior to maneuvers.
   * `ui/screens/`: 11 dedicated Jetpack Compose Canvas renderers replicating Beeline Moto 2 screens pixel-for-pixel.
 
 ### `:phone`
 * **Purpose**: Companion host engine running on rider's Android smartphone mounted or stowed in pocket.
 * **Key Components**:
-  * [`MainActivity.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/main/java/com/motowear/phone/MainActivity.kt): Modern Material 3 Expressive UI for route selection, mode toggling, simulation controls, and permission onboarding.
-  * [`RideForegroundService.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/main/java/com/motowear/phone/service/RideForegroundService.kt): Foreground Service managing persistent CPU wake lock, location updates, and inter-app notification listeners.
-  * [`GpxRouteParser.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/main/java/com/motowear/phone/gpx/GpxRouteParser.kt): Native GPX 1.1 XML pull-parser with turn-maneuver inference and waypoint indexing.
-  * [`LocalVectorProjector.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/main/java/com/motowear/phone/projection/LocalVectorProjector.kt): Projects WGS-84 coordinates into normalized $[-1.0, 1.0]$ rider heading-up coordinate space.
-  * [`NavigationNotificationBridgeService.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/main/java/com/motowear/phone/bridge/NavigationNotificationBridgeService.kt) & [`NavigationBridgeParser.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/main/java/com/motowear/phone/bridge/NavigationBridgeParser.kt): Real-time notification scraper and regex classifier supporting Beeline, Google Maps, and OsmAnd.
-  * [`TelemetryBroadcaster.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/main/java/com/motowear/phone/TelemetryBroadcaster.kt): Encodes and streams 10Hz Protobuf packets over the Google Play Services Wearable `MessageClient`.
+  * [`MainActivity.kt`](../phone/src/main/java/com/motowear/phone/MainActivity.kt): Modern Material 3 Expressive UI for route selection, mode toggling, simulation controls, and permission onboarding.
+  * [`RideForegroundService.kt`](../phone/src/main/java/com/motowear/phone/service/RideForegroundService.kt): Foreground Service managing persistent CPU wake lock, location updates, and inter-app notification listeners.
+  * [`GpxRouteParser.kt`](../phone/src/main/java/com/motowear/phone/gpx/GpxRouteParser.kt): Native GPX 1.1 XML pull-parser with turn-maneuver inference and waypoint indexing.
+  * [`LocalVectorProjector.kt`](../phone/src/main/java/com/motowear/phone/projection/LocalVectorProjector.kt): Projects WGS-84 coordinates into normalized $[-1.0, 1.0]$ rider heading-up coordinate space.
+  * [`NavigationNotificationBridgeService.kt`](../phone/src/main/java/com/motowear/phone/bridge/NavigationNotificationBridgeService.kt) & [`NavigationBridgeParser.kt`](../phone/src/main/java/com/motowear/phone/bridge/NavigationBridgeParser.kt): Real-time notification scraper and regex classifier supporting Beeline, Google Maps, and OsmAnd.
+  * [`TelemetryBroadcaster.kt`](../phone/src/main/java/com/motowear/phone/TelemetryBroadcaster.kt): Encodes and streams 10Hz Protobuf packets over the Google Play Services Wearable `MessageClient`.
 
 ---
 

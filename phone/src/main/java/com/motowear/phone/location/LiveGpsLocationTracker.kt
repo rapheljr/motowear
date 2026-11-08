@@ -64,7 +64,7 @@ class LiveGpsLocationTracker(context: Context) {
                         lat = loc.latitude,
                         lon = loc.longitude,
                         elevationMeters = if (loc.hasAltitude()) loc.altitude else 0.0,
-                        speedLimitKmh = 70
+                        speedLimitKmh = 0
                     ),
                     speedKmh = speedKmh,
                     courseOverGroundDegrees = lastValidCogDegrees,

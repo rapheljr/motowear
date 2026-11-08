@@ -15,7 +15,7 @@ data class GeoPoint(
     val lat: Double,
     val lon: Double,
     val elevationMeters: Double = 0.0,
-    val speedLimitKmh: Int = 70,
+    val speedLimitKmh: Int = 0,
     val isWaypoint: Boolean = false,
     val name: String? = null
 )
@@ -209,27 +209,31 @@ object GpxRouteParser {
 
             val kind = classifyTurnDelta(delta)
             if (kind != ManeuverKind.STRAIGHT) {
-                maneuvers.add(
-                    RouteManeuverPoint(
-                        nodeIndex = i,
-                        point = nodes[i].point,
-                        maneuver = kind,
-                        cumulativeDistanceMeters = nodes[i].cumulativeDistanceMeters,
-                        turnAngleDeltaDeg = delta
+                val lastManeuverDist = maneuvers.lastOrNull()?.cumulativeDistanceMeters ?: -100.0
+                val distSinceLastManeuver = nodes[i].cumulativeDistanceMeters - lastManeuverDist
+                if (distSinceLastManeuver >= 30.0 || kind == ManeuverKind.UTURN) {
+                    maneuvers.add(
+                        RouteManeuverPoint(
+                            nodeIndex = i,
+                            point = nodes[i].point,
+                            maneuver = kind,
+                            cumulativeDistanceMeters = nodes[i].cumulativeDistanceMeters,
+                            turnAngleDeltaDeg = delta
+                        )
                     )
-                )
-                val continuationStub = projectOffsetGeoPoint(
-                    origin = nodes[i].point,
-                    bearingDeg = prevBearing,
-                    distanceMeters = 95.0
-                )
-                val oppositeBranchStub = projectOffsetGeoPoint(
-                    origin = nodes[i].point,
-                    bearingDeg = (nextBearing + 180.0) % 360.0,
-                    distanceMeters = 85.0
-                )
-                sideStreets.add(listOf(nodes[i].point, continuationStub))
-                sideStreets.add(listOf(nodes[i].point, oppositeBranchStub))
+                    val continuationStub = projectOffsetGeoPoint(
+                        origin = nodes[i].point,
+                        bearingDeg = prevBearing,
+                        distanceMeters = 95.0
+                    )
+                    val oppositeBranchStub = projectOffsetGeoPoint(
+                        origin = nodes[i].point,
+                        bearingDeg = (nextBearing + 180.0) % 360.0,
+                        distanceMeters = 85.0
+                    )
+                    sideStreets.add(listOf(nodes[i].point, continuationStub))
+                    sideStreets.add(listOf(nodes[i].point, oppositeBranchStub))
+                }
             }
         }
 

@@ -2,11 +2,14 @@ package com.motowear.wear.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -15,17 +18,24 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.wear.compose.material.Text
 import com.motowear.telemetry.ScreenMode
 import com.motowear.telemetry.TelemetryFrameState
 import com.motowear.wear.state.EdgeTapZone
 import com.motowear.wear.state.RideViewModel
+import com.motowear.wear.theme.BeelineColors
 import com.motowear.wear.theme.MotoWearTheme
 import com.motowear.wear.ui.components.BeelineBootSplashOverlay
 import com.motowear.wear.ui.screens.DebugTelemetryScreen
@@ -142,6 +152,40 @@ fun MotoWearApp(
                 lastPacketMsAgo = state.lastPacketMsAgo,
                 totalPacketsCount = state.packetsReceivedCount
             )
+
+            val isLinkLost = (state.lastPacketMsAgo > 3000L || state.lastPacketMsAgo < 0L) &&
+                state.mode in listOf(
+                    ScreenMode.TURN_BY_TURN,
+                    ScreenMode.SPEEDO,
+                    ScreenMode.JOURNEY_PROGRESS,
+                    ScreenMode.JOURNEY_TRACKING,
+                    ScreenMode.FAST_REROUTING,
+                    ScreenMode.WAYPOINT_SKIPPING
+                )
+
+            if (isLinkLost && !showBootSplash) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 16.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(BeelineColors.BeelineRed, RoundedCornerShape(10.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = if (state.lastPacketMsAgo < 0L) "NO PHONE LINK" else "LINK LOST (${state.lastPacketMsAgo / 1000}s)",
+                            style = TextStyle(
+                                color = BeelineColors.BeelineWhite,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                }
+            }
 
             AnimatedVisibility(
                 visible = showBootSplash,

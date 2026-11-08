@@ -109,9 +109,10 @@ In-depth technical specifications and architectural documentation are available 
 
 ### Running the Apps
 
-1. **Wear OS App**: Deploy `:wear` module to your Wear OS smartwatch or circular emulator. If no phone is connected, it automatically runs an internal 60fps simulation.
+1. **Wear OS App**: Deploy `:wear` module to your Wear OS smartwatch or circular emulator. When disconnected from phone host, it shows link status and idle HUD metrics.
 2. **Companion Phone App**: Deploy `:phone` module to your Android smartphone or emulator to stream live GPS routes or bridge external navigation notifications.
 3. **Official Beeline Pairing**: Open the official Beeline app on your phone, navigate to *Devices* $\to$ *Pair Device*, and connect directly to `"Beeline Moto II"`.
+4. **Notification Listener Bridge (Android 13+)**: On Android 13+, sideloaded companion APKs require manually enabling **Restricted Settings** in *System Settings $\to$ Apps $\to$ MotoWear Companion $\to$ Allow restricted settings* before enabling Notification Access.
 
 ---
 

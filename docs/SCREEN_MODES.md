@@ -27,7 +27,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
 ## 2. Visual Screen Showcase & Layouts
 
 ### Screen 1: `QUICK_START` (Mode 0)
-* **File**: [`QuickStartScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/QuickStartScreen.kt)
+* **File**: [`QuickStartScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/QuickStartScreen.kt)
 * **Visual Reference**: `docs/images/blk_strart_ride_from_device.webp`
 * **Layout**:
   * Centered Beeline yellow brand roundel and start arrow icon.
@@ -38,7 +38,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
   * Rotary Crown: Cycles between onboarding, settings, and start screen.
 
 ### Screen 2: `TURN_BY_TURN` (Mode 1)
-* **File**: [`TurnByTurnAndRerouteScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/TurnByTurnAndRerouteScreen.kt)
+* **File**: [`TurnByTurnAndRerouteScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/TurnByTurnAndRerouteScreen.kt)
 * **Visual Reference**: `docs/images/blk_nav.webp`
 * **Layout**:
   * **2D Vector Mini-Map**: Dynamic heading-up vector map. Active route is rendered as a 12dp solid white path with rounded caps; intersecting side streets render as 2dp subtle dark grey lines.
@@ -49,7 +49,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
 * **Ambient Behavior**: Automatically dims and draws hollow maneuver vectors during straight road sections over $400\text{ m}$.
 
 ### Screen 3: `FAST_REROUTING` (Mode 2)
-* **File**: [`TurnByTurnAndRerouteScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/TurnByTurnAndRerouteScreen.kt)
+* **File**: [`TurnByTurnAndRerouteScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/TurnByTurnAndRerouteScreen.kt)
 * **Visual Reference**: `docs/images/blk_rerouting_32632794-93c7-410a-972e-2440e0115b3a.webp`
 * **Layout**:
   * Activates automatically when GPS deviation from route exceeds $40\text{ meters}$.
@@ -57,7 +57,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
   * Animated pulsing reroute indicator banner at top.
 
 ### Screen 4: `SPEEDO` (Mode 3)
-* **File**: [`SpeedoScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/SpeedoScreen.kt)
+* **File**: [`SpeedoScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/SpeedoScreen.kt)
 * **Visual Reference**: `docs/images/blk_speedo_55040e5d-f3ce-4ce7-b106-c9ef0ac57a7b.webp`
 * **Layout**:
   * Huge centered speed readout in custom heavy typography (e.g. `80`).
@@ -67,7 +67,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
   * Bottom trip metrics: Average Speed and Trip Top Speed.
 
 ### Screen 5: `JOURNEY_PROGRESS` (Mode 4)
-* **File**: [`JourneyProgressScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/JourneyProgressScreen.kt)
+* **File**: [`JourneyProgressScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/JourneyProgressScreen.kt)
 * **Visual Reference**: `docs/images/blk_journey_eta.webp`
 * **Layout**:
   * Outer $360^\circ$ circular progress ring with amber leading dot indicating overall route completion percentage ($0-100\%$).
@@ -75,7 +75,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
   * Remaining duration countdown (`2h 25m`) and estimated arrival time (`ETA 09:45`).
 
 ### Screen 6: `JOURNEY_TRACKING` (Mode 5)
-* **File**: [`JourneyTrackingScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/JourneyTrackingScreen.kt)
+* **File**: [`JourneyTrackingScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/JourneyTrackingScreen.kt)
 * **Visual Reference**: `docs/images/blk_Journey_tracking.webp`
 * **Layout**:
   * Outer rotating $360^\circ$ compass rose ring with cardinal tick marks (`N`, `E`, `S`, `W`).
@@ -85,7 +85,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
   * Sub-page indicator dots (`○ ●`) toggled via bottom button or crown.
 
 ### Screen 7: `WAYPOINT_SKIPPING` (Mode 6)
-* **File**: [`WaypointSkippingScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/WaypointSkippingScreen.kt)
+* **File**: [`WaypointSkippingScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/WaypointSkippingScreen.kt)
 * **Visual Reference**: `docs/images/blk_skip_waypoiny_9fb04247-e640-4922-9847-69d28479134f.webp`
 * **Layout**:
   * Waypoint index badge (`Waypoint 1 of 3`).
@@ -93,7 +93,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
   * `"PRESS TO SKIP"` action confirmation prompt.
 
 ### Screen 8: `JOURNEY_SUMMARY` (Mode 7)
-* **File**: [`JourneySummaryScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/JourneySummaryScreen.kt)
+* **File**: [`JourneySummaryScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/JourneySummaryScreen.kt)
 * **Visual Reference**: `docs/images/blk_ride_summary.webp`
 * **Layout**:
   * Displayed upon ride finish or manual end ride action.
@@ -101,7 +101,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
   * Official Beeline brand roundel footer.
 
 ### Screen 9: `DEVICE_SETTINGS` (Mode 8)
-* **File**: [`DeviceSettingsScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/DeviceSettingsScreen.kt)
+* **File**: [`DeviceSettingsScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/DeviceSettingsScreen.kt)
 * **Visual Reference**: `docs/images/device_settings_template.png`
 * **Layout**:
   * Left edge 9 o'clock D-button with return arrow glyph (`EdgeGlyphType.RETURN_BACK`).
@@ -114,7 +114,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
   * Active item rendered in 30sp bold pure white; adjacent items fade to 70%, 45%, 25% opacity.
 
 ### Screen 10: `QR_ONBOARDING` (Mode 9)
-* **File**: [`QrOnboardingScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/QrOnboardingScreen.kt)
+* **File**: [`QrOnboardingScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/QrOnboardingScreen.kt)
 * **Visual Reference**: `docs/images/qr_onboarding_connect.png`
 * **Layout**:
   * Upper circular area contains a scannable $25\times 25$ ISO/IEC 18004 Version 2-L QR code encoding `https://beeline.co/app`.
@@ -122,7 +122,7 @@ Every screen is rendered on Jetpack Compose Canvas using high-contrast vector dr
   * Lower capsule pill badge displaying 4-character pairing code: `8046`.
 
 ### Screen 11: `DEBUG_TELEMETRY` (Mode 10)
-* **File**: [`DebugTelemetryScreen.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/ui/screens/DebugTelemetryScreen.kt)
+* **File**: [`DebugTelemetryScreen.kt`](../wear/src/main/java/com/motowear/wear/ui/screens/DebugTelemetryScreen.kt)
 * **Layout**:
   * Live diagnostic stream monitor for engineering and route debugging.
   * Packet latency monitor (`Last packet: 14ms ago`), packet counters, connection status badge.

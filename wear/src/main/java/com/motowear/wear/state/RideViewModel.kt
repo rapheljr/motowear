@@ -34,8 +34,7 @@ import kotlin.math.sin
  * - Supports touch swipe gestures (horizontal left/right & vertical up/down) and edge tap targets
  *   to cycle across all Ride Modes and Device Settings, alongside physical stem buttons and rotary crown events.
  */
-class RideViewModel(application: Application) : AndroidViewModel(application),
-    MessageClient.OnMessageReceivedListener {
+class RideViewModel(application: Application) : AndroidViewModel(application) {
 
     private val allModesOrder = listOf(
         ScreenMode.QR_ONBOARDING,
@@ -62,7 +61,6 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
     private val _uiState = MutableStateFlow(createReferenceBaselineState())
     val uiState: StateFlow<TelemetryFrameState> = _uiState.asStateFlow()
 
-    private val messageClient = Wearable.getMessageClient(application)
     private var lastPhonePacketTimestampMs: Long = 0L
     private var userSwipedModeOverride: ScreenMode? = null
     private var lastRemotePhoneMode: ScreenMode? = null
@@ -73,26 +71,8 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
         private set
 
     init {
-        messageClient.addListener(this).addOnSuccessListener {
-            Log.d("RideViewModel", "MessageClient listener registered successfully")
-        }.addOnFailureListener {
-            Log.e("RideViewModel", "Failed to register MessageClient listener", it)
-        }
         observeIncomingPhoneTelemetry()
         start60FpsRenderAndBurnInLoop()
-    }
-
-    override fun onMessageReceived(messageEvent: MessageEvent) {
-        if (messageEvent.path == TelemetryPaths.TELEMETRY_FRAME_PATH) {
-            val decoded = runCatching {
-                ProtobufTelemetryMapper.fromProtoByteArray(messageEvent.data, _uiState.value)
-            }.onFailure {
-                Log.e("RideViewModel", "Failed to decode incoming telemetry frame", it)
-            }.getOrNull()
-            if (decoded != null) {
-                applyPhoneTelemetryFrame(decoded)
-            }
-        }
     }
 
     private fun observeIncomingPhoneTelemetry() {
@@ -450,8 +430,6 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
     private fun start60FpsRenderAndBurnInLoop() {
         viewModelScope.launch {
             while (isActive) {
-                delay(16L) // ~60fps (16.6ms)
-                simulationTimeSec += 0.016f
                 val nowMs = System.currentTimeMillis()
                 val packetAgeMs = if (lastPhonePacketTimestampMs > 0L) {
                     nowMs - lastPhonePacketTimestampMs
@@ -465,33 +443,26 @@ class RideViewModel(application: Application) : AndroidViewModel(application),
                     val shiftX = if (current.isAmbientMode) 3f * sin(lissajousPhase) else 0f
                     val shiftY = if (current.isAmbientMode) 3f * cos(2f * lissajousPhase) else 0f
 
-                    if (isPhoneStreamActive) {
-                        current.copy(
-                            lastPacketMsAgo = packetAgeMs,
-                            packetsReceivedCount = packetsReceivedCount,
-                            burnInOffsetPxX = shiftX,
-                            burnInOffsetPxY = shiftY
-                        )
-                    } else {
-                        val animatedSpeed = (80 + 4f * sin(simulationTimeSec * 0.7f)).roundToInt()
-                        val cog = resolveCogHeading(animatedSpeed, 330)
-                        current.copy(
-                            headingDegrees = cog,
-                            lastPacketMsAgo = packetAgeMs,
-                            packetsReceivedCount = packetsReceivedCount,
-                            burnInOffsetPxX = shiftX,
-                            burnInOffsetPxY = shiftY
-                        )
-                    }
+                    current.copy(
+                        lastPacketMsAgo = packetAgeMs,
+                        packetsReceivedCount = packetsReceivedCount,
+                        burnInOffsetPxX = shiftX,
+                        burnInOffsetPxY = shiftY
+                    )
                 }
+
+                val loopDelayMs = when {
+                    _uiState.value.isAmbientMode -> 1000L
+                    !isPhoneStreamActive -> 500L
+                    else -> 16L
+                }
+                simulationTimeSec += loopDelayMs / 1000f
+                delay(loopDelayMs)
             }
         }
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        messageClient.removeListener(this)
-    }
+
 
     companion object {
         fun createReferenceBaselineState(): TelemetryFrameState {

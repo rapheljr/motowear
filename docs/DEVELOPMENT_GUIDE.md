@@ -77,9 +77,9 @@ MotoWear OS includes unit tests covering GPX parsing, 2D vector projections, not
 ```
 
 ### Verified Test Suites:
-* [`NavigationBridgeParserTest.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/test/java/com/motowear/phone/NavigationBridgeParserTest.kt): Verifies distance conversions, roundabout exit regex, and maneuver classification across Beeline, Google Maps, and OsmAnd strings.
-* [`GpxAndProjectionTest.kt`](file:///Users/abin/workspace/projects/motonavi/phone/src/test/java/com/motowear/phone/GpxAndProjectionTest.kt): Tests GPX 1.1 XML parsing, waypoint extraction, and 2D heading-up vector projections.
-* [`BleAndProtobufDecoderTest.kt`](file:///Users/abin/workspace/projects/motonavi/wear/src/test/java/com/motowear/wear/BleAndProtobufDecoderTest.kt): Tests compact 10-byte BLE frame decoding, Protobuf wire serialization, and button press notifications.
+* [`NavigationBridgeParserTest.kt`](../phone/src/test/java/com/motowear/phone/NavigationBridgeParserTest.kt): Verifies distance conversions, roundabout exit regex, and maneuver classification across Beeline, Google Maps, and OsmAnd strings.
+* [`GpxAndProjectionTest.kt`](../phone/src/test/java/com/motowear/phone/GpxAndProjectionTest.kt): Tests GPX 1.1 XML parsing, waypoint extraction, and 2D heading-up vector projections.
+* [`BleAndProtobufDecoderTest.kt`](../wear/src/test/java/com/motowear/wear/BleAndProtobufDecoderTest.kt): Tests compact 10-byte BLE frame decoding, Protobuf wire serialization, and button press notifications.
 
 ---
 
@@ -113,7 +113,7 @@ Tested on:
 ## 5. Testing Modes & Built-in Simulator
 
 ### 1. Zero-Setup 60fps Mock Telemetry Generator
-When `:wear` is launched independently without an active companion connection, [`RideViewModel`](file:///Users/abin/workspace/projects/motonavi/wear/src/main/java/com/motowear/wear/state/RideViewModel.kt) automatically spins up a high-fidelity 60fps mock telemetry generator:
+When `:wear` is launched independently without an active companion connection, [`RideViewModel`](../wear/src/main/java/com/motowear/wear/state/RideViewModel.kt) automatically spins up a high-fidelity 60fps mock telemetry generator:
 * Simulates smooth vehicle acceleration and deceleration ($60-95\text{ km/h}$).
 * Smoothly transitions distances ($500\text{ m} \to 0\text{ m}$).
 * Progressively cycles maneuvers: Turn Right $\to$ Roundabout Exit 2 $\to$ Sharp Left $\to$ U-turn $\to$ Straight.

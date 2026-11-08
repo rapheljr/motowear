@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        hostEngine = RideHostEngine(this)
+        hostEngine = RideHostEngine.getInstance(this)
 
         setContent {
             BeelinePhoneTheme {
@@ -147,7 +147,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        hostEngine.cleanup()
     }
 }
 

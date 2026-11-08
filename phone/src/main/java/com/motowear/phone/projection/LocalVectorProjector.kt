@@ -34,7 +34,8 @@ object LocalVectorProjector {
         route: ParsedGpxRoute,
         riderPosition: GeoPoint,
         headingCogDegrees: Double,
-        viewportRadiusMeters: Double = DEFAULT_VIEWPORT_RADIUS_METERS
+        viewportRadiusMeters: Double = DEFAULT_VIEWPORT_RADIUS_METERS,
+        lastKnownIndex: Int = -1
     ): ProjectedMapSlice {
         if (route.nodes.size < 2) {
             return ProjectedMapSlice(emptyList(), emptyList(), false, 0.0, 0)
@@ -45,7 +46,15 @@ object LocalVectorProjector {
         var nearestIdx = 0
         var nearestReentryPoint = route.nodes.first().point
 
-        for (i in 0 until route.nodes.size - 1) {
+        val searchRange = if (lastKnownIndex in 0 until (route.nodes.size - 1)) {
+            val start = (lastKnownIndex - 10).coerceAtLeast(0)
+            val end = (lastKnownIndex + 30).coerceAtMost(route.nodes.size - 2)
+            start..end
+        } else {
+            0 until (route.nodes.size - 1)
+        }
+
+        for (i in searchRange) {
             val a = route.nodes[i].point
             val b = route.nodes[i + 1].point
             val closest = closestPointOnSegment(riderPosition, a, b)
@@ -54,6 +63,20 @@ object LocalVectorProjector {
                 minDistanceMeters = d
                 nearestIdx = i
                 nearestReentryPoint = closest
+            }
+        }
+
+        if (lastKnownIndex >= 0 && minDistanceMeters > OFF_ROUTE_THRESHOLD_METERS) {
+            for (i in 0 until (route.nodes.size - 1)) {
+                val a = route.nodes[i].point
+                val b = route.nodes[i + 1].point
+                val closest = closestPointOnSegment(riderPosition, a, b)
+                val d = GpxRouteParser.haversineMeters(riderPosition, closest)
+                if (d < minDistanceMeters) {
+                    minDistanceMeters = d
+                    nearestIdx = i
+                    nearestReentryPoint = closest
+                }
             }
         }
 

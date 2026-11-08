@@ -12,8 +12,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.wear.ambient.AmbientLifecycleObserver
-import com.motowear.wear.ble.BeelineBleGattPeripheralServer
 import com.motowear.wear.power.DynamicWakeController
+import com.motowear.wear.service.WearForegroundService
 import com.motowear.wear.state.RideViewModel
 import com.motowear.wear.ui.MotoWearApp
 import kotlinx.coroutines.launch
@@ -30,7 +30,6 @@ class WearMainActivity : ComponentActivity() {
 
     private val viewModel: RideViewModel by viewModels()
     private val dynamicWakeController = DynamicWakeController()
-    private lateinit var blePeripheralServer: BeelineBleGattPeripheralServer
     private var isSystemAmbient = false
     private var topStemDownTimestampMs: Long = 0L
     private var topStemLongPressConsumed: Boolean = false
@@ -56,12 +55,10 @@ class WearMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        blePeripheralServer = BeelineBleGattPeripheralServer(this)
-
         val bluetoothPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) {
-            blePeripheralServer.startPeripheralServer()
+            WearForegroundService.start(this)
         }
 
         val blePermissionsNeeded = buildList {
@@ -74,11 +71,11 @@ class WearMainActivity : ComponentActivity() {
         }
 
         if (hasBlePermissions) {
-            blePeripheralServer.startPeripheralServer()
+            WearForegroundService.start(this)
         } else if (blePermissionsNeeded.isNotEmpty()) {
             bluetoothPermissionLauncher.launch(blePermissionsNeeded.toTypedArray())
         } else {
-            blePeripheralServer.startPeripheralServer()
+            WearForegroundService.start(this)
         }
 
         ambientObserver = AmbientLifecycleObserver(this, ambientCallback)
@@ -110,7 +107,6 @@ class WearMainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        blePeripheralServer.stopPeripheralServer()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

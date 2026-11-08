@@ -28,6 +28,17 @@ object ExternalNavBridgeRepository {
     private val _latestSnapshot = MutableStateFlow<ExternalNavSnapshot?>(null)
     val latestSnapshot: StateFlow<ExternalNavSnapshot?> = _latestSnapshot.asStateFlow()
 
+    const val SNAPSHOT_TTL_MS = 10_000L
+
+    fun getValidSnapshot(nowMs: Long = System.currentTimeMillis()): ExternalNavSnapshot? {
+        val current = _latestSnapshot.value ?: return null
+        if (nowMs - current.timestampMs > SNAPSHOT_TTL_MS) {
+            _latestSnapshot.value = null
+            return null
+        }
+        return current
+    }
+
     fun publishSnapshot(snapshot: ExternalNavSnapshot) {
         _latestSnapshot.value = snapshot
     }
