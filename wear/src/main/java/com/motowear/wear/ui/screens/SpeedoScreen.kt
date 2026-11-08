@@ -19,6 +19,7 @@ import com.motowear.wear.theme.BeelineTypography
 import com.motowear.wear.ui.components.BeelineCanvasPrimitives.drawSpeedLimitBadge
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -118,8 +119,9 @@ fun SpeedoScreen(
             )
 
             // 4. Center Stack — Middle: Current GPS Speed (80 in 44sp Bold White) + unit (km/h in 15sp)
+            val speedValue = if (state.useImperialUnits) (state.currentSpeedKmh * 0.621371f).roundToInt() else state.currentSpeedKmh
             val speedLayout = textMeasurer.measure(
-                text = state.currentSpeedKmh.toString(),
+                text = speedValue.toString(),
                 style = BeelineTypography.SpeedHero44
             )
             val unitLabel = if (state.useImperialUnits) "mph" else "km/h"
@@ -155,8 +157,9 @@ fun SpeedoScreen(
                 style = Stroke(width = 1.2.dp.toPx())
             )
 
+            val avgSpeedValue = if (state.useImperialUnits) (state.avgSpeedKmh * 0.621371f).roundToInt() else state.avgSpeedKmh
             val avgValLayout = textMeasurer.measure(
-                text = state.avgSpeedKmh.toString(),
+                text = avgSpeedValue.toString(),
                 style = BeelineTypography.DistanceRemaining17
             )
             val avgUnitLayout = textMeasurer.measure(

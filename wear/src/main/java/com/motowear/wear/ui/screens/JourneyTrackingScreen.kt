@@ -150,7 +150,8 @@ fun JourneyTrackingScreen(
             )
 
             // 3. Center Rolling Odometer (3 main digit cells + 1 tenths cell + km label)
-            val clampedOdo = state.odometerKm.coerceIn(0f, 999.9f)
+            val rawOdo = if (state.useImperialUnits) state.odometerKm * 0.621371f else state.odometerKm
+            val clampedOdo = rawOdo.coerceIn(0f, 999.9f)
             val wholeVal = floor(clampedOdo).toInt()
             val tenthsVal = ((clampedOdo - wholeVal) * 10f).roundToInt().coerceIn(0, 9)
 

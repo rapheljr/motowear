@@ -30,7 +30,9 @@ import com.motowear.wear.ui.components.BeelineCanvasPrimitives.drawRiderChevron
 import com.motowear.wear.ui.components.BeelineCanvasPrimitives.drawSideEdgeDButton
 import com.motowear.wear.ui.components.BeelineCanvasPrimitives.drawSpeedLimitBadge
 import com.motowear.wear.ui.components.EdgeGlyphType
+import java.util.Locale
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 
 /**
  * Mode 1 (`TURN_BY_TURN`) and Mode 2 (`FAST_REROUTING`) Renderer.
@@ -129,16 +131,10 @@ fun TurnByTurnAndRerouteScreen(
                     val primaryRouteWidth = BeelineDimens.PrimaryRouteWidth.toPx()
                     state.mapVectors.filter { it.isPrimaryRoute }.forEach { segment ->
                         val routePath = Path()
-                        val shiftedPoints = segment.points.mapIndexed { idx, pt ->
-                            val xOffset = if (isRerouting) {
-                                0.34f + idx * 0.05f
-                            } else {
-                                pt.x
-                            }
-                            val yOffset = if (isRerouting && idx == 0) -0.58f else pt.y
+                        val shiftedPoints = segment.points.map { pt ->
                             Offset(
-                                x = chevronOrigin.x + xOffset * mapScale,
-                                y = chevronOrigin.y + yOffset * mapScale
+                                x = chevronOrigin.x + pt.x * mapScale,
+                                y = chevronOrigin.y + pt.y * mapScale
                             )
                         }
                         if (shiftedPoints.isNotEmpty()) {
@@ -190,9 +186,21 @@ fun TurnByTurnAndRerouteScreen(
                     )
                 }
 
-                // 5. Center Zone Distance Readout (300 m)
-                val distText = state.distanceToNextMeters.toString()
-                val unitText = if (state.useImperialUnits) "yd" else "m"
+                // 5. Center Zone Distance Readout (300 m / 328 yd)
+                val (distText, unitText) = if (state.useImperialUnits) {
+                    if (state.distanceToNextMeters >= 1609) {
+                        String.format(java.util.Locale.US, "%.1f", state.distanceToNextMeters / 1609.344f) to "mi"
+                    } else {
+                        (state.distanceToNextMeters * 1.09361f).roundToInt().toString() to "yd"
+                    }
+                } else {
+                    if (state.distanceToNextMeters >= 1000) {
+                        String.format(java.util.Locale.US, "%.1f", state.distanceToNextMeters / 1000f) to "km"
+                    } else {
+                        state.distanceToNextMeters.toString() to "m"
+                    }
+                }
+
                 val distLayout = textMeasurer.measure(
                     text = distText,
                     style = BeelineTypography.DistancePrimary30
@@ -219,17 +227,17 @@ fun TurnByTurnAndRerouteScreen(
                 )
 
                 // 6. Right Split Horizon (X = 80%, Y = 63%): Circular Speed Limit Sign (42dp diameter)
-                if (!isRerouting) {
+                if (!isRerouting && state.speedLimitKmh > 0) {
                     drawSpeedLimitBadge(
                         center = Offset(w * 0.80f, splitY),
                         diameterDp = 42f,
-                        speedLimitValue = state.speedLimitKmh.let { if (it <= 0) 70 else it },
+                        speedLimitValue = state.speedLimitKmh,
                         textMeasurer = textMeasurer,
                         approachRatio = state.speedLimitApproachRatio,
                         showApproachArc = true,
                         isAmbient = state.isAmbientMode
                     )
-                } else {
+                } else if (isRerouting) {
                     // Mode 2 FAST_REROUTING: D-shaped right-edge prompt at 3 o'clock with circular detour/rejoin glyph
                     drawSideEdgeDButton(
                         isRightEdge = true,

@@ -187,11 +187,12 @@ fun JourneyProgressScreen(
             )
 
             // 4. Bottom Metric: Remaining distance (158 mi or km)
-            val distInt = state.remainingDistance.toInt()
+            val distVal = if (state.useImperialUnits) (state.remainingDistance * 0.621371f) else state.remainingDistance
+            val distStr = String.format(java.util.Locale.US, "%.1f", distVal)
             val distUnit = if (state.useImperialUnits) "mi" else "km"
             val remDistAnnotated = buildAnnotatedString {
                 withStyle(SpanStyle(fontSize = 19.sp, fontWeight = FontWeight.Bold, color = BeelineColors.BeelineWhite)) {
-                    append("$distInt ")
+                    append("$distStr ")
                 }
                 withStyle(SpanStyle(fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = BeelineColors.BeelineGrey)) {
                     append(distUnit)

@@ -66,6 +66,7 @@ fun MotoWearApp(
     var showBootSplash by remember { mutableStateOf(true) }
     var totalDragX by remember { mutableFloatStateOf(0f) }
     var totalDragY by remember { mutableFloatStateOf(0f) }
+    var rotaryAccumulator by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
@@ -140,8 +141,14 @@ fun MotoWearApp(
                     }
                 }
                 .onRotaryScrollEvent { rotaryEvent ->
-                    val dir = if (rotaryEvent.verticalScrollPixels >= 0f) 1 else -1
-                    viewModel.onRotaryOrTopShortPress(dir)
+                    if (!state.isTouchLocked) {
+                        rotaryAccumulator += rotaryEvent.verticalScrollPixels
+                        if (abs(rotaryAccumulator) >= 48f) {
+                            val dir = if (rotaryAccumulator > 0f) 1 else -1
+                            rotaryAccumulator = 0f
+                            viewModel.onRotaryOrTopShortPress(dir)
+                        }
+                    }
                     true
                 }
                 .focusRequester(focusRequester)

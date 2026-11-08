@@ -83,7 +83,8 @@ fun JourneySummaryScreen(
                 style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
 
-            val distStr = String.format(Locale.US, "%.1f", state.summaryDistanceKm)
+            val rawDist = if (state.useImperialUnits) state.summaryDistanceKm * 0.621371f else state.summaryDistanceKm
+            val distStr = String.format(Locale.US, "%.1f", rawDist)
             val distUnit = if (state.useImperialUnits) "mi" else "km"
             val row1Annotated = buildAnnotatedString {
                 withStyle(SpanStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold, color = BeelineColors.BeelineWhite)) {
@@ -176,7 +177,8 @@ fun JourneySummaryScreen(
                 cap = StrokeCap.Round
             )
 
-            val avgSpeedStr = String.format(Locale.US, "%.1f", state.summaryAvgSpeedKmh)
+            val rawSpeed = if (state.useImperialUnits) state.summaryAvgSpeedKmh * 0.621371f else state.summaryAvgSpeedKmh
+            val avgSpeedStr = String.format(Locale.US, "%.1f", rawSpeed)
             val speedUnit = if (state.useImperialUnits) "mph" else "km/h"
             val row3Annotated = buildAnnotatedString {
                 withStyle(SpanStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, color = BeelineColors.BeelineWhite)) {
