@@ -1,0 +1,22 @@
+{
+  "name": "MotoWear OS Beeline App Patch",
+  "description": "Morphe / ReVanced bytecode patches for the Official Beeline app (co.beeline)",
+  "appName": "Beeline",
+  "packageName": "co.beeline",
+  "version": "4.2.8704",
+  "patches": [
+    {
+      "name": "BypassBLEHardwareCheck",
+      "description": "Bypasses the physical hardware signature validation in co.beeline BLE pairing, allowing instant pairing with MotoWear OS and custom BLE peripherals.",
+      "targetClass": "co/beeline/device/pairing/BeelineDevicePairing",
+      "targetMethod": "handleSuccess",
+      "action": "force_return_true"
+    },
+    {
+      "name": "UnlockBeelinePlusFeatures",
+      "description": "Unlocks Beeline Plus features including round-trip generation and premium map views.",
+      "targetClass": "co/beeline/ui/account/AccountComposablesKt",
+      "action": "unlock_plus"
+    }
+  ]
+}
