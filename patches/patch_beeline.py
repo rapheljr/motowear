@@ -18,9 +18,14 @@ def patch_beeline_apk(xapk_path, output_dir):
     os.makedirs(output_dir, exist_ok=True)
     base_apk = os.path.join(output_dir, "co.beeline.apk")
 
-    print(f"[*] Extracting base APK from {xapk_path}...")
+    print(f"[*] Extracting all split APKs from {xapk_path}...")
+    apk_files = []
     with zipfile.ZipFile(xapk_path, 'r') as z:
-        z.extract("co.beeline.apk", output_dir)
+        for name in z.namelist():
+            if name.endswith('.apk'):
+                z.extract(name, output_dir)
+                apk_files.append(os.path.join(output_dir, name))
+                print(f"[+] Extracted split: {name}")
 
     print(f"[*] Analyzing DEX structures in {base_apk}...")
     with zipfile.ZipFile(base_apk, 'r') as z:
@@ -40,7 +45,8 @@ def patch_beeline_apk(xapk_path, output_dir):
         json.dump(patch_meta, f, indent=2)
 
     print(f"[+] Morphe patch configuration created at {meta_file}")
-    print("[+] Patched base APK ready at:", base_apk)
+    install_cmd = f"adb install-multiple -r -d {' '.join(apk_files)}"
+    print("[+] To install split APKs on your phone, run:\n    " + install_cmd)
 
 if __name__ == "__main__":
     xapk = sys.argv[1] if len(sys.argv) > 1 else "co.beeline_4.2.8704.xapk"

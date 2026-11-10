@@ -28,6 +28,10 @@ Compatible with [spookyexe/morphe-patches](https://github.com/spookyexe/morphe-p
 ```bash
 python3 patches/patch_beeline.py co.beeline_4.2.8704.xapk patched_output
 ```
+To install all generated split APKs onto your Android phone via ADB:
+```bash
+adb install-multiple -r -d patched_output/co.beeline.apk patched_output/config.arm64_v8a.apk patched_output/config.xhdpi.apk
+```
 
 ### Method C: Custom JSON Patch Source
 Add `patches/beeline-morphe-patch.json` as a custom patch bundle source in Morphe Patcher.
