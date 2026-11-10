@@ -18,16 +18,19 @@ This directory contains Morphe / ReVanced style byte-code patch specifications a
 
 ## 🛠️ How to Apply Patches
 
-### Method A: Using Morphe Patcher App
-1. Download **Morphe Patcher** app on your phone.
-2. Add custom patch bundle source: `beeline-morphe-patch.json`.
-3. Select `co.beeline` APK and tap **Patch**.
-4. Install the generated `co.beeline-patched.apk`.
+### Method A: Morphe Patcher Framework (`spookyexe/morphe-patches`)
+Compatible with [spookyexe/morphe-patches](https://github.com/spookyexe/morphe-patches):
+1. Copy `patches/morphe-kotlin-patch/BypassBleHardwareCheckPatch.kt` into the `software/morphe/patches/beeline/` folder of your Morphe patches bundle.
+2. Build the Morphe patch jar using Gradle: `./gradlew build`.
+3. Select `co.beeline` in the Morphe Patcher App, enable **Bypass BLE hardware pairing check**, and tap **Patch**.
 
-### Method B: Using Provided Python Utility
+### Method B: Standalone Python Patcher Utility
 ```bash
 python3 patches/patch_beeline.py co.beeline_4.2.8704.xapk patched_output
 ```
+
+### Method C: Custom JSON Patch Source
+Add `patches/beeline-morphe-patch.json` as a custom patch bundle source in Morphe Patcher.
 
 ---
 
