@@ -31,7 +31,7 @@ jobs:
           format: "${major}.${minor}.${patch}"
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -53,15 +53,16 @@ jobs:
       - name: Package Release Assets
         run: |
           mkdir -p release-assets
-          cp phone/build/outputs/apk/debug/phone-debug.apk release-assets/MotoWear-Phone-Companion-${{ steps.semver.outputs.version_tag }}.apk
-          cp wear/build/outputs/apk/debug/wear-debug.apk release-assets/MotoWear-WearOS-Watch-${{ steps.semver.outputs.version_tag }}.apk
+          TAG_NAME="${{ github.ref_name }}"
+          cp phone/build/outputs/apk/debug/phone-debug.apk release-assets/MotoWear-Phone-Companion-${TAG_NAME}.apk
+          cp wear/build/outputs/apk/debug/wear-debug.apk release-assets/MotoWear-WearOS-Watch-${TAG_NAME}.apk
 
       - name: Tag and Create GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.semver.outputs.version_tag }}
-          name: Release ${{ steps.semver.outputs.version_tag }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           files: |
-            release-assets/MotoWear-Phone-Companion-${{ steps.semver.outputs.version_tag }}.apk
-            release-assets/MotoWear-WearOS-Watch-${{ steps.semver.outputs.version_tag }}.apk
+            release-assets/MotoWear-Phone-Companion-${{ github.ref_name }}.apk
+            release-assets/MotoWear-WearOS-Watch-${{ github.ref_name }}.apk
           generate_release_notes: true
