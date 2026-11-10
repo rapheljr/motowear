@@ -21,7 +21,7 @@ jobs:
 
       - name: Calculate Semantic Version
         id: semver
-        uses: PaulHatch/semantic-version@v6.0.4
+        uses: PaulHatch/semantic-version@v6.0.7
         with:
           branch: main
           tag_prefix: "v"
