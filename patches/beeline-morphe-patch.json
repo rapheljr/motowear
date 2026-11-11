@@ -21,6 +21,13 @@
       "description": "Unlocks Beeline Plus features including round-trip generation and premium map views.",
       "targetClass": "co/beeline/ui/account/AccountComposablesKt",
       "action": "unlock_plus"
+    },
+    {
+      "name": "DisableSSLPinning",
+      "description": "Disables OkHttp CertificatePinner validation in co.beeline, allowing HTTPS login calls to api.beeline.co on custom signed APKs.",
+      "targetClass": "okhttp3/CertificatePinner",
+      "targetMethod": "check",
+      "action": "force_return_void"
     }
   ]
 }
