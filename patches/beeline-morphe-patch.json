@@ -7,8 +7,12 @@
   "patches": [
     {
       "name": "BypassBLEHardwareCheck",
-      "description": "Bypasses the physical hardware signature validation in co.beeline BLE pairing, allowing instant pairing with MotoWear OS and custom BLE peripherals.",
-      "targetClass": "co/beeline/device/pairing/BeelineDevicePairing",
+      "description": "Bypasses physical hardware signature validation in co.beeline BLE pairing, allowing instant pairing with MotoWear OS and custom BLE peripherals.",
+      "targetClasses": [
+        "co/beeline/ui/device/PairingViewModel",
+        "defpackage/gk0",
+        "co/beeline/device/pairing/BeelineDevicePairing"
+      ],
       "targetMethod": "handleSuccess",
       "action": "force_return_true"
     },
