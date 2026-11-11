@@ -18,19 +18,22 @@ import software.morphe.patcher.patch.BytecodeContext
 object BypassBleHardwareCheckPatch : BytecodePatch() {
 
     override fun execute(context: BytecodeContext) {
-        // Target Beeline Device Pairing & Connection Handshake Validation
-        val pairingClass = context.findClass("co.beeline.device.pairing.BeelineDevicePairing")
-        pairingClass?.findMethod("handleSuccess")?.replaceWith(
+        // Target 1: Public Unobfuscated ViewModel Entry Point
+        val viewModelClass = context.findClass("co.beeline.ui.device.PairingViewModel")
+        viewModelClass?.findMethod("handleSuccess")?.replaceWith(
             """
             const/4 v0, 0x1
             return v0
             """
         )
 
-        val blePeripheralClass = context.findClass("co.beeline.bluetooth.device.BlePeripheral")
-        blePeripheralClass?.findMethod("setPickedDevice")?.replaceWith(
+        // Target 2: R8 Obfuscated Device Pairing Core Implementation
+        val obfuscatedPairingClass = context.findClass("defpackage.gk0")
+            ?: context.findClass("co.beeline.device.pairing.BeelineDevicePairing")
+        obfuscatedPairingClass?.findMethod("a")?.replaceWith(
             """
-            return-void
+            const/4 v0, 0x1
+            return v0
             """
         )
     }
