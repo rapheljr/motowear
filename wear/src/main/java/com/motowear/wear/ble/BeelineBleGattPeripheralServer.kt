@@ -67,38 +67,6 @@ class BeelineBleGattPeripheralServer(context: Context) {
     private val pendingServicesQueue = ConcurrentLinkedQueue<BluetoothGattService>()
     private val subscribedDevices = CopyOnWriteArraySet<BluetoothDevice>()
     private var isAdvertising = false
-    private var isPairingReceiverRegistered = false
-
-    private val pairingRequestReceiver = object : BroadcastReceiver() {
-        @SuppressLint("MissingPermission")
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action != BluetoothDevice.ACTION_PAIRING_REQUEST) return
-            val device: BluetoothDevice = intent.getParcelableExtra(
-                BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java
-            ) ?: return
-
-            val variant = intent.getIntExtra(
-                BluetoothDevice.EXTRA_PAIRING_VARIANT,
-                BluetoothDevice.ERROR,
-            )
-            Log.d("BeelineBleGattServer", "Incoming ACTION_PAIRING_REQUEST from ${device.address}, variant=$variant")
-
-            runCatching {
-                when (variant) {
-                    BluetoothDevice.PAIRING_VARIANT_PIN -> {
-                        device.setPin("8046".toByteArray(Charsets.UTF_8))
-                        device.setPairingConfirmation(true)
-                    }
-                    else -> {
-                        device.setPairingConfirmation(true)
-                    }
-                }
-            }.onFailure {
-                Log.w("BeelineBleGattServer", "Auto-confirm pairing requires system privilege: ${it.message}")
-            }
-        }
-    }
-
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
             isAdvertising = true
@@ -123,6 +91,7 @@ class BeelineBleGattPeripheralServer(context: Context) {
             }
         }
 
+        @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
             if (device == null) return
             Log.d("BeelineBleGattServer", "BLE connection state changed: ${device.address} -> newState=$newState (status=$status)")
@@ -158,7 +127,8 @@ class BeelineBleGattPeripheralServer(context: Context) {
                 CHAR_SERIAL_NUMBER_UUID -> "8046".toByteArray(Charsets.UTF_8)
                 CHAR_CURRENT_TIME_UUID -> buildCurrentTimeBytes()
                 CHAR_LOCAL_TIME_INFO_UUID -> byteArrayOf(0x16, 0x00)
-                BEELINE_OFFICIAL_WRITE_CHAR_UUID -> 
+                BEELINE_OFFICIAL_WRITE_CHAR_UUID,
+                BEELINE_OFFICIAL_NOTIFY_CHAR_UUID ->
                     buildHandshakeNotificationPayload()
                 else -> byteArrayOf(0x00)
             }
@@ -206,10 +176,12 @@ class BeelineBleGattPeripheralServer(context: Context) {
                 }
             }
             // Immediately dispatch initial device handshake notification on C5D70003 after CCCD subscription
-            if (device != null && descriptor?.characteristic?.uuid == BEELINE_OFFICIAL_NOTIFY_CHAR_UUID) {
+            if (device != null && (descriptor?.characteristic?.uuid == BEELINE_OFFICIAL_NOTIFY_CHAR_UUID ||
+                    descriptor?.characteristic?.uuid == BEELINE_OFFICIAL_WRITE_CHAR_UUID ||
+                    descriptor?.characteristic?.uuid == BEELINE_EXT_CHAR_1_UUID)) {
                 mainHandler.postDelayed({
                     sendHandshakeNotification(device)
-                }, 60L)
+                }, 40L)
             }
         }
 
@@ -235,10 +207,10 @@ class BeelineBleGattPeripheralServer(context: Context) {
                     gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
                 }
             }
-            if (device != null && uuid == BEELINE_OFFICIAL_WRITE_CHAR_UUID) {
-                // Acknowledge official co.beeline command write with C5D70003 notification
+            if (device != null && value != null && uuid == BEELINE_OFFICIAL_WRITE_CHAR_UUID) {
+                // Acknowledge official co.beeline command write with C5D70003 notification matching requested opcode
                 mainHandler.postDelayed({
-                    sendHandshakeNotification(device)
+                    processIncomingBeelineWriteCommand(device, value)
                 }, 30L)
             }
             if (value != null && uuid in WRITABLE_TELEMETRY_UUIDS) {
@@ -262,7 +234,6 @@ class BeelineBleGattPeripheralServer(context: Context) {
     @SuppressLint("MissingPermission")
     fun startPeripheralServer() {
         WearTelemetryRepository.registerBlePeripheralServer(this)
-        registerPairingReceiver()
 
         val manager = bluetoothManager ?: return
         val adapter = bluetoothAdapter ?: return
@@ -408,9 +379,9 @@ class BeelineBleGattPeripheralServer(context: Context) {
      */
     private fun buildHandshakeNotificationPayload(): ByteArray {
         val idBytes = "8046".toByteArray(Charsets.UTF_8)
-        val fwBytes = "4.2.8704".toByteArray(Charsets.UTF_8)
+        val fwBytes = "4.2".toByteArray(Charsets.UTF_8)
         val hwBytes = "2.0".toByteArray(Charsets.UTF_8)
-        // Protobuf length-delimited fields 1 ("8046"), 2 ("4.2.8704"), 3 ("2.0")
+        // Protobuf length-delimited fields 1 ("8046"), 2 ("4.2"), 3 ("2.0")
         val out = ByteBuffer.allocate(2 + idBytes.size + 2 + fwBytes.size + 2 + hwBytes.size)
         out.put(0x0A.toByte()).put(idBytes.size.toByte()).put(idBytes)
         out.put(0x12.toByte()).put(fwBytes.size.toByte()).put(fwBytes)
@@ -418,11 +389,29 @@ class BeelineBleGattPeripheralServer(context: Context) {
         return out.array()
     }
 
+    private fun processIncomingBeelineWriteCommand(device: BluetoothDevice, bytes: ByteArray) {
+        if (bytes.isEmpty()) return
+        val opcode = bytes[0].toInt() and 0xFF
+        val payload = when (opcode) {
+            0x01 -> byteArrayOf(0x01, 0x00, 0x01, 0x00)
+            0x02 -> byteArrayOf(0x02, 0x00)
+            0x03 -> byteArrayOf(0x03, 0x00)
+            0x05 -> byteArrayOf(0x05, 0x00)
+            0x08 -> byteArrayOf(0x08, 0x00)
+            else -> buildHandshakeNotificationPayload()
+        }
+        sendNotificationPayload(device, payload)
+    }
+
     @SuppressLint("MissingPermission")
     private fun sendHandshakeNotification(device: BluetoothDevice) {
+        sendNotificationPayload(device, buildHandshakeNotificationPayload())
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun sendNotificationPayload(device: BluetoothDevice, payload: ByteArray) {
         val server = gattServer ?: return
         val characteristic = notifyCharacteristicC5D70003 ?: return
-        val payload = buildHandshakeNotificationPayload()
         runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 server.notifyCharacteristicChanged(device, characteristic, false, payload)
@@ -472,28 +461,7 @@ class BeelineBleGattPeripheralServer(context: Context) {
         return buf.array()
     }
 
-    private fun registerPairingReceiver() {
-        if (isPairingReceiverRegistered) return
-        runCatching {
-            val filter = IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST).apply {
-                priority = IntentFilter.SYSTEM_HIGH_PRIORITY
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                appContext.registerReceiver(pairingRequestReceiver, filter, Context.RECEIVER_EXPORTED)
-            } else {
-                appContext.registerReceiver(pairingRequestReceiver, filter)
-            }
-            isPairingReceiverRegistered = true
-        }
-    }
 
-    private fun unregisterPairingReceiver() {
-        if (!isPairingReceiverRegistered) return
-        runCatching {
-            appContext.unregisterReceiver(pairingRequestReceiver)
-        }
-        isPairingReceiverRegistered = false
-    }
 
     @SuppressLint("MissingPermission")
     fun notifyUserActionButtonPress(buttonId: Int) {
@@ -517,7 +485,6 @@ class BeelineBleGattPeripheralServer(context: Context) {
     @SuppressLint("MissingPermission")
     fun stopPeripheralServer() {
         WearTelemetryRepository.unregisterBlePeripheralServer(this)
-        unregisterPairingReceiver()
         pendingServicesQueue.clear()
         runCatching {
             if (isAdvertising) {

@@ -140,7 +140,30 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     onRequestStartStreaming = ::requestPermissionsAndStartStream,
+                    onOpenBeelineApp = { openOfficialBeelineApp(this@MainActivity) }
                 )
+            }
+        }
+    }
+
+    private fun openOfficialBeelineApp(context: android.content.Context) {
+        val pm = context.packageManager
+        val intent = pm.getLaunchIntentForPackage("co.beeline")
+            ?: pm.getLaunchIntentForPackage("com.beeline")
+        if (intent != null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } else {
+            val playStoreIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=co.beeline")).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            runCatching {
+                context.startActivity(playStoreIntent)
+            }.onFailure {
+                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=co.beeline")).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(webIntent)
             }
         }
     }
@@ -156,7 +179,8 @@ private fun CompanionHostDashboard(
     onPickGpxFile: () -> Unit,
     onOpenNotificationListenerSettings: () -> Unit,
     onToggleLiveGps: (Boolean) -> Unit,
-    onRequestStartStreaming: () -> Unit
+    onRequestStartStreaming: () -> Unit,
+    onOpenBeelineApp: () -> Unit
 ) {
     val route by engine.activeRoute.collectAsState()
     val state by engine.telemetryState.collectAsState()
@@ -206,11 +230,23 @@ private fun CompanionHostDashboard(
                         color = if (externalBridgeSnapshot != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         FilledTonalButton(
                             onClick = onOpenNotificationListenerSettings
                         ) {
                             Text("Grant Notification Access", style = MaterialTheme.typography.labelMedium)
+                        }
+                        Button(
+                            onClick = onOpenBeelineApp,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        ) {
+                            Text("Open Beeline App", style = MaterialTheme.typography.labelMedium)
                         }
                         OutlinedButton(
                             onClick = {

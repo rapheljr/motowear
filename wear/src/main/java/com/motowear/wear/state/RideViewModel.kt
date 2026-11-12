@@ -506,7 +506,7 @@ class RideViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             return TelemetryFrameState(
-                mode = ScreenMode.TURN_BY_TURN,
+                mode = ScreenMode.QR_ONBOARDING,
                 mapVectors = listOf(
                     leftSideStreet,
                     topContinuationStreet,
