@@ -21,7 +21,7 @@ jobs:
 
       - name: Calculate Semantic Version
         id: semver
-        uses: PaulHatch/semantic-version@v6.0.4
+        uses: PaulHatch/semantic-version@v6.0.7
         with:
           branch: main
           tag_prefix: "v"
@@ -58,7 +58,7 @@ jobs:
           cp wear/build/outputs/apk/debug/wear-debug.apk release-assets/MotoWear-WearOS-Watch-${TAG_NAME}.apk
 
       - name: Tag and Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
